@@ -1,0 +1,22 @@
+[RoutineDef, save_file,
+
+[VarSet, currentTool, [IGetTitle, Tool:Current Tool, 0]]
+[VarSet, name, [FileNameExtract, currentTool, 2]]
+
+[IPress, Tool:SubTool:All Low]
+
+[VarSet, path, [StrMerge, [FileNameResolvePath, "zbrush_os_paths.py"], " "]] 
+
+//[MessageOK,[StrExtract,#path,2,[StrLength, #path]]]
+
+[ShellExecute,
+    [StrMerge, [StrExtract,#path,2,[StrLength, #path]], name]]
+
+ ]
+
+
+[IButton, "TOOL:Send to Maya", "Export model as a *.ma to maya",
+
+[RoutineCall, save_file]
+
+ ]
