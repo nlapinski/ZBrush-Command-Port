@@ -15,6 +15,6 @@ set env var $ZDOCS = /path/to/goz_default
 -copy shelf_script_maya.py to a shelf button and add ZBrush IP address    
 -modify load_file_maya.py to include Maya's IP and command port #    
  
--After files are in place lauch Maya+ZBrush    
-- ./zserv.py to start listening for commands to send to zbrush    
+-after files are in place lauch Maya+ZBrush    
+-run zserv.py to start listening for commands to send to zbrush    
 -start a command port in maya with the maya shelf script    
