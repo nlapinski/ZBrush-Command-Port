@@ -10,8 +10,6 @@ from pymel.core import deleteUI
 import os
 
 from zclient import main
-reload(main)
-
 
 class win(): 
 
