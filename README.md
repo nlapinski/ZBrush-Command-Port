@@ -14,7 +14,7 @@ place in your/maya/install/site-packages/zclient
 create a shelf button in maya with:
 ```python
 import zclient
-mainwindow=gui.win()
+mainwindow=zclient.gui.win()
 ```
 this is for the setup GUI
 
