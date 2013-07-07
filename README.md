@@ -20,7 +20,7 @@ this is for the setup GUI
 
 create another shelf button with:
 ```python
-zclient.mainwindow.execute_shelf()
+mainwindow.execute_shelf()
 ```
 this button is for sending to zbrush, after the GUI is setup with IP info
 
