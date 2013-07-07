@@ -8,20 +8,26 @@ Install
 -------------------
 
 zclient:
-	client for sending files to zbrush from maya, includes a gui for setup
 
-	place in your/maya/install/site-packages/zclient
-	create a shelf button in maya with
-	```python
-	import zclient
-	mainwindow=gui.win()
-	```
-	this is for the setup GUI
-	create another shelf button with
-	```python
-	zclient.mainwindow.execute_shelf()
-	```
-	this button is for sending to zbrush, after the GUI is setup with IP info
+client for sending files to zbrush from maya, includes a gui for setup
+
+place in your/maya/install/site-packages/zclient
+
+create a shelf button in maya with
+
+```python
+import zclient
+mainwindow=gui.win()
+```
+
+this is for the setup GUI
+create another shelf button with
+
+```python
+zclient.mainwindow.execute_shelf()
+```
+
+this button is for sending to zbrush, after the GUI is setup with IP info
 
 
 zserv: 
