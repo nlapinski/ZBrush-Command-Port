@@ -1,3 +1,8 @@
 .DS_Store
+<<<<<<< HEAD
 .swp
 .zsc
+=======
+*.pyc
+*.swp
+>>>>>>> 43559e50075ee93cf7f5bfb0c2f0c87a58f14f02
