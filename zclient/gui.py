@@ -112,12 +112,12 @@ class win():
 
         status = main.start(self.m_ip,self.m_port)
         
-        self.status.setBackgroundColor((1,0,0))
+        self.status.setBackgroundColor((1,0,.5))
         self.status.setLabel(
                 'Status: not listening')
 
         if status:
-            self.status.setBackgroundColor((0.0,1.0,0.0))
+            self.status.setBackgroundColor((0.0,1.0,0.5))
             self.status.setLabel(
                     'Status: listening ('+self.m_ip+':'+str(self.m_port)+')')
 
