@@ -37,7 +37,7 @@ def zbrush_save(file, env, tool):
     zscript += '[MemSaveToFile, zzz,"!:' + \
                 os.path.join(env_expand, file + '.zzz') + '"]'
 
-    script_name = '/usr/bin/python -m mclient.mclient.zbrush_export'
+    script_name = '/usr/bin/python -m mclient.zbrush_export'
     zscript += '[ShellExecute,"' + script_name + ' ' +file+ ' '+tool+' '+'1'+ '"]'
     zscript += '[Exit]'
     zscript += ']'
@@ -78,10 +78,6 @@ def send_to_maya(file, env):
     maya.connect(("192.168.1.20", 6667))
     maya.send(mayaCMD)
     maya.close()
-
-
-def lock(lock_file):
-    print name
 
 if __name__ == "__main__":
 
