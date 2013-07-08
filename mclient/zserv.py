@@ -27,7 +27,11 @@ def zbrush_gui():
     -send osa/apple tell
     -'save_file' zscript sends one
     -'save_all' iterates subtools and saves each
+    -buttons call python, python calls zscript, then more python
+    ^this is where it gets really convoluded,
+    however its to prevent locking ZBrush execution
     
+    zbrush_export(save) is called, and creates a save funciton then send to maya
     
     """
 
