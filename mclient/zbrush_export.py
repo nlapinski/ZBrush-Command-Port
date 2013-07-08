@@ -91,7 +91,12 @@ def send_to_maya(file, env):
         print 'waiting'
     os.remove(lock_file)
     maya = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    maya.connect(("192.168.1.20", 6667))
+   
+    mnet = os.getenv('MNET', "192.168.1.20:6667")
+    HOST=mnet.split(':')[0]
+    PORT=mnet.split(':')[1]
+
+    maya.connect((HOST, int(PORT)))
     maya.send(mayaCMD)
     maya.close()
 
