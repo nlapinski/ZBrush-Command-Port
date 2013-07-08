@@ -20,6 +20,18 @@ def send_osa(script_path):
     return ret
 
 def zbrush_gui():
+
+    """Creates a gui when zserv starts in zbrush for send all/single obj
+
+    -make zscript
+    -send osa/apple tell
+    -'save_file' zscript sends one
+    -'save_all' iterates subtools and saves each
+    
+    
+    """
+
+
     print 'init gui'
     zs_temp = NamedTemporaryFile(delete=False,suffix='.txt')
 
@@ -69,6 +81,17 @@ def zbrush_gui():
     return zs_temp.name
 
 def zbrush_open(name):
+
+    """open a file with zbrush
+    
+    -create temp zscript file
+    -load with file open commands
+    -replace #TOOLNAME/#FILENAME with maya path/filename
+    -iterate through current subtools to check for 'matches'
+    -import if match, append new cloned tool for unique tools
+
+    """
+
     zs_temp = NamedTemporaryFile(delete=False, suffix='.txt')
     env = os.getenv('ZDOCS')
     print env
@@ -109,6 +132,8 @@ def zbrush_open(name):
     return zs_temp.name
 
 def listen():
+
+    """waits for file open commands from maya, iterates obj list """
 
     HOST = socket.gethostbyname(socket.getfqdn())
     PORT = 6668
