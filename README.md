@@ -28,14 +28,20 @@ this button is for sending to zbrush, after the GUI is setup with IP info
 **zserv** 
 python module to recive files from maya and load in zbrush
 copy mclient to /your/python/install/site-packages/
-zserv will launch zbrush when loaded
+zserv will launch zbrush when loaded, probbly better to start ZBrush first
+zserv also places a GUI in zbrush for sending to maya
 host:port can be passed as commandline arguments
 ```bash
-python -m zserv 10.10.0.10:6668
+python -m mclient.zserv 10.10.0.10:6668
 ```
 
 **mclient**
-client for sending files to maya from zbrush
+client for sending files to maya from zbrush,
+this is triggered by 2 ui buttons in ZBrush
+
+```bash
+python -m mclient.zbrush_export file_name tool# save/send(0 or 1)
+```
 
 **General setup**
 Create a folder ZBrush and Maya have acess to (network drive)
@@ -47,15 +53,3 @@ export ZDOCS = /path/to/goz_default
 export MNET your.maya.ip:port
 export ZNET your.zbrush.up:port
 ```
-
-
-OLD INFO:
-
--place zbrush_scripts, and maya_scripts in that folder   
--open send_to_maya.txt with ZBrush    
--copy shelf_script_maya.py to a shelf button and add ZBrush IP address    
--modify load_file_maya.py to include Maya's IP and command port #    
- 
--after files are in place lauch Maya+ZBrush    
--run zserv.py to start listening for commands to send to zbrush    
--start a command port in maya with the maya shelf script    
