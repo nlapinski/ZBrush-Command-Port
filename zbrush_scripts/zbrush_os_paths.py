@@ -7,6 +7,7 @@ from subprocess import *
 from tempfile import *
 import time
 file = (sys.argv)[1]
+tool = (sys.argv)[2]
 
 check_env = os.environ.get('ZDOCS')
 env = '$ZDOCS'
@@ -29,14 +30,16 @@ def send_osa(script_path):
     # Popen(cmd.replace('.txt','.zsc'))
 
 
-def zbrush_save(file, env):
+def zbrush_save(file, env, tool):
     zs_temp = NamedTemporaryFile(delete=False, suffix='.txt')
     env_expand = os.path.expandvars(env)
     print env
 
     zscript = '[RoutineDef, save_file,'
+    zscript += '[SubToolSelect,'+tool+']'
     zscript += '[FileNameSetNext,"!:'
     zscript += os.path.join(env_expand, file + '.ma')
+    print file
     zscript += '","ZSTARTUP_ExportTamplates\Maya.ma"]'
     zscript += '[IPress,Tool:Export]'
     zscript += '[MemCreate, zzz, 1, 0]'
@@ -54,5 +57,5 @@ def zbrush_save(file, env):
     zs_temp.write(zscript)
     return zs_temp.name
 
-zs_temp = zbrush_save(file, env)
+zs_temp = zbrush_save(file, env,tool)
 send_osa(zs_temp)
