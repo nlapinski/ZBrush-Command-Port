@@ -27,12 +27,17 @@ this button is for sending to zbrush, after the GUI is setup with IP info
 
 **zserv** 
 python module to recive files from maya and load in zbrush
+copy mclient to /your/python/install/site-packages/
+zserv will launch zbrush when loaded
+host:port can be passed as commandline arguments
+```bash
+python -m zserv 10.10.0.10:6668
+```
 
 **mclient**
 client for sending files to maya from zbrush
 
 **General setup**
-
 Create a folder ZBrush and Maya have acess to (network drive)
 
 set up some enviromental variables on each machine

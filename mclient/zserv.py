@@ -7,8 +7,6 @@ import os
 from tempfile import *
 import sys
 
-HOST = socket.gethostbyname(socket.getfqdn())
-PORT = 6668
 
 
 def send_osa(script_path):
@@ -18,17 +16,64 @@ def send_osa(script_path):
            '"' + script_path + '"\'']
 
     cmd = ' '.join(cmd)
-    print cmd
-    os.system(cmd)
-    # time.sleep(1)
-    # os.system(cmd.replace('.txt','.zsc'))
+    ret = os.system(cmd)
+    return ret
 
+def zbrush_gui():
+    print 'init gui'
+    zs_temp = NamedTemporaryFile(delete=False,suffix='.txt')
+
+    zscript = """
+                
+            [RoutineDef, save_file,
+
+            [VarSet, name, [FileNameExtract, [GetActiveToolPath], 2]]
+            [IPress, Tool:SubTool:All Low]
+            [VarSet, path, "/usr/bin/python -m mclient.zbrush_export "]
+            [VarSet, q, [SubToolGetActiveIndex]]
+            [ShellExecute,
+            [StrMerge,[StrMerge, #path, [StrMerge,[StrMerge, name, " "],#q]]," 0"]]
+             ]
+
+            [IButton, "TOOL:Send to Maya", "Export model as a *.ma to maya",
+            [RoutineCall, save_file]
+            ]
+
+            [RoutineDef, save_all,
+            [VarSet,t,0]
+            [IPress, Tool:SubTool:All Low]
+            [SubToolSelect,0]
+            [Loop, [SubToolGetCount], 
+
+            [VarSet, t, t+1]
+            [SubToolSelect,t-1]
+            [VarSet, name, [FileNameExtract,[GetActiveToolPath],2]]
+            [VarSet, path, "/usr/bin/python -m mclient.zbrush_export "]
+            [VarSet, q, [Val, #t-1]]
+            [ShellExecute,
+            [StrMerge,[StrMerge, #path, [StrMerge,[StrMerge, name, " "],#q]]," 0"]]
+
+            ]
+            ]
+
+
+            [IButton, "TOOL:Send all", "Export model as a *.ma to maya",
+
+            [RoutineCall, save_all]
+
+            ]
+
+            """
+
+    zs_temp.write(zscript)
+    return zs_temp.name
 
 def zbrush_open(name):
     zs_temp = NamedTemporaryFile(delete=False, suffix='.txt')
-    env = os.getenv('ZDOCS', "/your/file/path/for/zbrush/to/open/files")
+    env = os.getenv('ZDOCS')
     print env
 
+    #zbrush script to iterate through sub tools and open matches, appends new tools
     zscript = """
             [RoutineDef, open_file,
             [FileNameSetNext,"!:#FILENAME"]
@@ -60,12 +105,29 @@ def zbrush_open(name):
 
     zscript = zscript.replace('#FILENAME',os.path.join(env, name))
     zscript = zscript.replace('#TOOLNAME',name.replace('.ma',''))
-    #print zscript
     zs_temp.write(zscript)
     return zs_temp.name
 
-
 def listen():
+
+    HOST = socket.gethostbyname(socket.getfqdn())
+    PORT = 6668
+
+    print 'Default IP: '+str(HOST)+':'+str(PORT)
+
+    znet = os.getenv('ZNET')
+
+    if znet is not None:
+        print 'Env IP: '+str(znet)
+        HOST=znet.split(':')[0]
+        PORT=znet.split(':')[1]
+
+    if len(sys.argv)==2:
+        args = (sys.argv)[1]
+        print 'User IP: '+str(args)
+        HOST=args.split(':')[0]
+        PORT=int(args.split(':')[1])
+
 
     soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     time.sleep(2)
@@ -91,5 +153,12 @@ def listen():
     conn.close()
     print "end"
 
-while 1:
-    listen()
+if __name__ == "__main__":
+    zbrush_ui_script = zbrush_gui()
+    err_code = send_osa(zbrush_ui_script)
+    while err_code != 0:
+        err_code = send_osa(zbrush_ui_script)
+    print 'status: '+str(err_code)
+    print 'listen'
+    while 1:
+        listen()
