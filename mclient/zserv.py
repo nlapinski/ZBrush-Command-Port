@@ -4,7 +4,6 @@ import socket
 import subprocess
 import time
 import os
-from tempfile import *
 import sys
 
 """Starts a server which listens for commands sent from Maya.
@@ -51,47 +50,105 @@ def zbrush_gui():
     script_path=os.path.join(script_path,'zbrush_gui.txt')
     zs_temp = open(script_path,'w+')
 
-    zscript = """
-                
-            [RoutineDef, save_file,
 
-            [VarSet, name, [FileNameExtract, [GetActiveToolPath], 2]]
-            [IPress, Tool:SubTool:All Low]
-            [VarSet, path, "/usr/bin/python -m mclient.zbrush_export "]
-            [VarSet, q, [SubToolGetActiveIndex]]
-            [ShellExecute,
-            [StrMerge,[StrMerge, #path, [StrMerge,[StrMerge, name, " "],#q]]," 0"]]
-             ]
+    #zscript for sending a sigle file to maya
 
-            [IButton, "TOOL:Send to Maya", "Export model as a *.ma to maya",
-            [RoutineCall, save_file]
+    zscript="""
+
+
+[RoutineDef, send_file,
+
+    [VarSet, env_path, "!:#ENVPATH/"]
+
+
+    [VarSet, name, [FileNameExtract, [GetActiveToolPath], 2]]
+    [VarSet, name, [StrMerge,name,".ma"]]
+
+    [IPress, Tool:SubTool:All Low]
+    [VarSet, path, "/usr/bin/python -m mclient.zbrush_export "]
+    [VarSet, q, [SubToolGetActiveIndex]]
+   
+    [VarSet, export_path, [StrMerge,env_path,name_ma] ]
+
+
+    [MemCreate, zzz, 1, 0]
+
+    [VarSet, lock_name,[FileNameExtract, [GetActiveToolPath], 2]]
+
+    [VarSet, lock_file,[StrMerge,env_path,#lock_name,".zzz"]]
+
+    [FileNameSetNext, #export_path,"ZSTARTUP_ExportTamplates\Maya.ma"]
+
+    [IPress,Tool:Export]
+
+    [MemSaveToFile, zzz,lock_file]
+
+
+    [ShellExecute,
+        [StrMerge, #path, 
+            [StrMerge,
+                [StrMerge, #lock_name, " "],#q
             ]
+        ]
+    ]
 
-            [RoutineDef, save_all,
-            [VarSet,t,0]
-            [IPress, Tool:SubTool:All Low]
-            [SubToolSelect,0]
-            [Loop, [SubToolGetCount], 
 
-            [VarSet, t, t+1]
-            [SubToolSelect,t-1]
-            [VarSet, name, [FileNameExtract,[GetActiveToolPath],2]]
-            [VarSet, path, "/usr/bin/python -m mclient.zbrush_export "]
-            [VarSet, q, [Val, #t-1]]
-            [ShellExecute,
-            [StrMerge,[StrMerge, #path, [StrMerge,[StrMerge, name, " "],#q]]," 0"]]
 
+            
+]
+
+[IButton, "TOOL:Send to Maya", "Export model as a *.ma to maya",
+    [RoutineCall, send_file]
+]
+
+    """
+
+    #zscript for sending all files to maya
+
+    zscript+="""
+
+
+[RoutineDef, send_all,
+
+    [VarSet,t,0]
+    [SubToolSelect,0]
+
+    [Loop,[SubToolGetCount],
+        [VarSet,t,t+1]
+        [SubToolSelect,t-1]
+
+        [VarSet, env_path, "!:#ENVPATH/"]
+        [VarSet, name, [FileNameExtract, [GetActiveToolPath], 2]]
+        [VarSet, name, [StrMerge,name,".ma"]]
+        [IPress, Tool:SubTool:All Low]
+        [VarSet, path, "/usr/bin/python -m mclient.zbrush_export "]
+        [VarSet, q, [SubToolGetActiveIndex]]
+        [VarSet, export_path, [StrMerge,env_path,name_ma] ]
+        [MemCreate, zzz, 1, 0]
+        [VarSet, lock_name,[FileNameExtract, [GetActiveToolPath], 2]]
+        [VarSet, lock_file,[StrMerge,env_path,#lock_name,".zzz"]]
+        [FileNameSetNext, #export_path,"ZSTARTUP_ExportTamplates\Maya.ma"]
+        [IPress,Tool:Export]
+        [MemSaveToFile, zzz,lock_file]
+        [ShellExecute,
+            [StrMerge, #path, 
+                [StrMerge,
+                    [StrMerge, #lock_name, " "],#t
+                ]
             ]
-            ]
+        ]
+    ]       
+]
+
+[IButton, "TOOL:Send to Maya -all", "Export model as a *.ma to maya",
+    [RoutineCall, send_all]
+]
+
+    """
 
 
-            [IButton, "TOOL:Send all", "Export model as a *.ma to maya",
-
-            [RoutineCall, save_all]
-
-            ]
-
-            """
+    expanded_env=os.getenv(SHARED_DIR_ENV.replace('$',''))
+    zscript=zscript.replace('#ENVPATH',expanded_env)
 
     zs_temp.write(zscript)
     return zs_temp.name

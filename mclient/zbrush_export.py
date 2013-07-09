@@ -3,57 +3,17 @@ import sys
 import socket
 import os
 from subprocess import *
-from tempfile import *
 import time
 
 SHARED_DIR_ENV='$ZDOCS'
 
 
-def send_osa(script_path):
-    """send osa/apple script from zbrush via the shell"""
-    
-    cmd = ['osascript -e',
-           '\'tell app "ZBrush"',
-           'to open',
-           '"' + script_path + '"\'']
+"""
 
-    cmd = ' '.join(cmd)
-    print cmd
-    script = Popen(cmd, shell=True)
+This module is execute as a script from within zbrush
+It takes a name from zbrush sends a load command to maya
 
-
-def zbrush_save(file, tool):
-    """save a file from zbrush
-
-    -creates a tmp file to load with zscript
-    -zscript is sent to zbrush with save commands
-    -after save writes a temp lock file 
-    -starts a new python script that waits for the temp file
-    -after temp file is created send file paths to maya
-
-    """
-
-    zs_temp = NamedTemporaryFile(delete=False, suffix='.txt')
-    env_expand = os.path.expandvars(SHARED_DIR_ENV)
-
-    zscript = '[RoutineDef, save_f,'
-    zscript += '[SubToolSelect,'+tool+']'
-    zscript += '[FileNameSetNext,"!:'
-    zscript += os.path.join(env_expand, file + '.ma')
-    zscript += '","ZSTARTUP_ExportTamplates\Maya.ma"]'
-    zscript += '[IPress,Tool:Export]'
-    zscript += '[MemCreate, zzz, 1, 0]'
-    zscript += '[MemSaveToFile, zzz,"!:' + \
-                os.path.join(env_expand, file + '.zzz') + '"]'
-
-    script_name = '/usr/bin/python -m mclient.zbrush_export'
-    zscript += '[ShellExecute,"' + script_name + ' ' +file+ ' '+tool+' '+'1'+ '"]'
-    zscript += '[Exit]'
-    zscript += ']'
-    zscript += '[RoutineCall,save_f]'
-    zs_temp.write(zscript)
-    return zs_temp.name
-
+"""
 
 def send_to_maya(file):
     """send a file to maya
@@ -75,7 +35,8 @@ def send_to_maya(file):
     
     lock_file = os.path.expandvars(file_path).replace('.ma', '.zzz')
     #added timeout check to prevent loop from breaking
-    time_out = time.time()
+    time_out = time.time()+5
+    
     while os.path.isfile(lock_file) == False:
         print 'waiting'
         time.sleep(1)
@@ -86,6 +47,7 @@ def send_to_maya(file):
         os.remove(lock_file)
     except:
         print 'no lock file, sending anyway'
+
     maya = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print mayaCMD
 
@@ -103,16 +65,10 @@ if __name__ == "__main__":
 
     -arg 1: object name ie: pSphere1
     -arg 2: zbrush object index (base 0)
-    -arg 3: save/send (0/1)
 
     """
 
     file = (sys.argv)[1]
     tool = (sys.argv)[2]
-    func = (sys.argv)[3]
-
-    if func == '0':
-        zs_temp = zbrush_save(file,tool)
-        send_osa(zs_temp)
-    if func == '1':
-        send_to_maya(file)
+    
+    send_to_maya(file)
