@@ -17,6 +17,8 @@ and install 2 GUI buttons for sending single or all meshes to maya
 
 """
 
+SHARED_DIR_ENV='$ZDOCS'
+
 def send_osa(script_path):
     cmd = ['osascript -e',
            '\'tell app "ZBrush"',
@@ -45,7 +47,9 @@ def zbrush_gui():
 
 
     print 'init gui'
-    zs_temp = NamedTemporaryFile(delete=False,suffix='.txt')
+    script_path=os.path.dirname(os.path.abspath(__file__))
+    script_path=os.path.join(script_path,'zbrush_gui.txt')
+    zs_temp = open(script_path,'w+')
 
     zscript = """
                 
@@ -104,9 +108,11 @@ def zbrush_open(name):
 
     """
 
-    zs_temp = NamedTemporaryFile(delete=False, suffix='.txt')
-    env = os.getenv('ZDOCS')
-    print env
+    script_path=os.path.dirname(os.path.abspath(__file__))
+    script_path=os.path.join(script_path,'zbrush_load.txt')
+    zs_temp = open(script_path,'w+')
+    
+    env = os.getenv(SHARED_DIR_ENV.replace('$',''))
 
     #zbrush script to iterate through sub tools and open matches, appends new tools
     zscript = """
@@ -148,18 +154,18 @@ def listen():
     host = socket.gethostbyname(socket.getfqdn())
     port = 6668
 
-    print 'Default IP: '+str(host)+':'+str(port)
+    print 'listening on: '+str(host)+':'+str(port)
 
     znet = os.getenv('ZNET')
 
     if znet is not None:
-        print 'Env IP: '+str(znet)
+        print 'listening on: '+str(znet)
         host = znet.split(':')[0]
         port = znet.split(':')[1]
 
     if len(sys.argv)==2:
         args = (sys.argv)[1]
-        print 'User IP: '+str(args)
+        print 'listening on: '+str(args)
         host = args.split(':')[0]
         port = int(args.split(':')[1])
 
@@ -181,19 +187,19 @@ def listen():
         if data.split('|')[0] == 'open':
             objs = data.split('|')[1].split(':')
             for obj in objs:
-                print obj
+                print 'got: '+obj
                 zs_temp = zbrush_open(obj+'.ma')
                 send_osa(zs_temp)
 
     conn.close()
-    print "end"
+    print "loaded all objs"
 
 if __name__ == "__main__":
     zbrush_ui_script = zbrush_gui()
     err_code = send_osa(zbrush_ui_script)
     while err_code != 0:
         err_code = send_osa(zbrush_ui_script)
-    print 'status: '+str(err_code)
-    print 'listen'
+    print "GUI Installed" if not err_code else 0
+    print 'Sever Started!'
     while 1:
         listen()
