@@ -9,6 +9,8 @@ import time
 
 
 def send_osa(script_path):
+    """send osa/apple script from zbrush via the shell"""
+    
     cmd = ['osascript -e',
            '\'tell app "ZBrush"',
            'to open',
@@ -22,6 +24,16 @@ def send_osa(script_path):
 
 
 def zbrush_save(file, env, tool):
+    """save a file from zbrush
+
+    -creates a tmp file to load with zscript
+    -zscript is sent to zbrush with save commands
+    -after save writes a temp lock file 
+    -starts a new python script that waits for the temp file
+    -after temp file is created send file paths to maya
+
+    """
+
     # FIXME: don't pass the environment variable name, define it in a constant
     zs_temp = NamedTemporaryFile(delete=False, suffix='.txt')
     env_expand = os.path.expandvars(env)
@@ -49,6 +61,14 @@ def zbrush_save(file, env, tool):
 
 
 def send_to_maya(file, env):
+    """send a file to maya
+
+    -cleans up past objects/shaders/textures
+    -removes object from maya if it exists
+    -loads object saved from zbrush
+    -removes zbrush temp lock file
+
+    """
     # FIXME: don't pass the environment variable name, define it in a constant
     env = '$' + env
 
@@ -108,6 +128,14 @@ def send_to_maya(file, env):
     maya.close()
 
 if __name__ == "__main__":
+
+    """send to maya/save from zbrush
+
+    -arg 1: object name ie: pSphere1
+    -arg 2: zbrush object index (base 0)
+    -arg 3: save/send (0/1)
+
+    """
 
     file = (sys.argv)[1]
     tool = (sys.argv)[2]

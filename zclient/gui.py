@@ -104,7 +104,7 @@ class win():
         self.gui_window.show()
 
     def start_listening(self, *args):
-
+        """open maya command port using .main.start()"""
         self.get_ui_m()
 
         main.stop(self.maya_ip,self.maya_port)
@@ -130,5 +130,6 @@ class win():
         self.gui_window.setVisible(False)
 
     def execute_shelf(self, *args):
+        """used for shelf send (so you dont need the gui all the time): """
         main.send_to_zbrush(self.zbrush_ip,self.zbrush_port)
 
