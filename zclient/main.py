@@ -11,6 +11,9 @@ import stat
 SHARED_DIR_ENV = '$ZDOCS'
 
 def start(ip,port):
+
+    """opens a maya command port, checks for open ports and closes them """
+    
     addr= ip+':'+str(port)
 
     
@@ -27,6 +30,9 @@ def start(ip,port):
     return status
 
 def stop(ip,port):
+
+    """close a maya command port """
+    
     addr= ip+':'+str(port)
     try:
         cmds.commandPort(n=addr,close=True)
@@ -35,6 +41,14 @@ def stop(ip,port):
         print 'no open sockets'
 
 def get_from_zbrush(file_path):
+
+
+    """loads *.ma from zbrush, called via command port in mclient.zbrush_export
+        
+        -cleanup
+        -load file
+
+    """
 
     ascii_file=os.path.splitext(file_path)[0]
     ascii_file=os.path.split(ascii_file)[1]
@@ -58,6 +72,19 @@ def get_from_zbrush(file_path):
 
 def send_to_zbrush(host, port):
 
+    """send some objects to zbrush
+
+    -cleans history, freeze xforms
+    -grabs UI host/port
+    -save asciifiles
+    -contructs a command list parsed by mclient.zserv
+    -sets permissions on saved files (so zbrush can overwrite)
+    -open|obj1:obj2:obj:3 is the listformat
+    | denotes end of open commands
+    : seperates objects/files
+
+
+    """
 
     objs = cmds.ls(selection=True)
 
