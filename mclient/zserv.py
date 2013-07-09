@@ -7,7 +7,15 @@ import os
 from tempfile import *
 import sys
 
+"""Starts a server which listens for commands sent from Maya.
+When it receives an 'open|path1:path2' command,
+triggers the opening of the zbrush files via appleScript
 
+On load if ZBrush is not open it will try to open it 
+and install 2 GUI buttons for sending single or all meshes to maya
+
+
+"""
 
 def send_osa(script_path):
     cmd = ['osascript -e',
