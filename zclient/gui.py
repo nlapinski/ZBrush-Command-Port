@@ -23,24 +23,25 @@ class win():
 
         try:
             #try to use env vars
-            self.z_port = znet.split(':')[1]
-            self.z_ip = znet.split(':')[0]
+            self.zbrush_port = znet.split(':')[1]
+            self.zbrush_ip = znet.split(':')[0]
 
-            self.m_port = mnet.split(':')[1]
-            self.m_ip = mnet.split(':')[0]
+            self.maya_port = mnet.split(':')[1]
+            self.maya_ip = mnet.split(':')[0]
 
         except:
             #fall back to defaults
-            self.z_port = 6668
-            self.z_ip = '192.168.1.17'
-            self.m_port = 6667
-            self.m_ip = '192.168.1.20'
+            self.zbrush_port = 6668
+            self.zbrush_ip = '192.168.1.17'
+            # FIXME: default ip for maya should be localhost...
+            self.maya_port = 6667
+            self.maya_ip = '192.168.1.20'
 
-        self.m_port_new=self.m_port
-        self.m_ip_new=self.m_ip
+        self.maya_port_new=self.maya_port
+        self.maya_ip_new=self.maya_ip
 
-        self.z_port_new=self.z_port
-        self.z_ip_new=self.z_ip
+        self.zbrush_port_new=self.zbrush_port
+        self.zbrush_ip_new=self.zbrush_ip
 
         if window('goz', exists=True):
             deleteUI('goz',window=True)
@@ -50,21 +51,21 @@ class win():
             numberOfColumns=3,
             columnAttach=(1,'right',0),
             columnWidth=[(1,100),(2,240),(3,60)])
-        label_z_ip=text(label='ZBrush IP')
-        self.user_z_ip = textField(text=self.z_ip)
+        label_zbrush_ip=text(label='ZBrush IP')
+        self.user_zbrush_ip = textField(text=self.zbrush_ip)
         self.spacer(1)
-        label_z_port=text(label='ZBrush PORT')
-        self.user_z_port=textField(text=self.z_port)
+        label_zbrush_port=text(label='ZBrush PORT')
+        self.user_zbrush_port=textField(text=self.zbrush_port)
         self.spacer(2)
         self.send = button(label="Send", parent=layout)
         self.spacer(2)
         space = separator(style='double',height=30)
         self.spacer(1)
-        label_m_ip=text(label='Maya IP')
-        self.user_m_ip = textField(text=self.m_ip)
+        label_maya_ip=text(label='Maya IP')
+        self.user_maya_ip = textField(text=self.maya_ip)
         self.spacer(1)
-        label_m_port=text(label='Maya PORT')
-        self.user_m_port=textField(text=self.m_port)
+        label_maya_port=text(label='Maya PORT')
+        self.user_maya_port=textField(text=self.maya_port)
         self.spacer(2)
         self.listen = button(label="Listen (cmd port)", parent=layout)
         self.spacer(2)
@@ -79,16 +80,16 @@ class win():
             space=separator(style='none')
 
     def get_ui_m(self, *args):
-        self.m_ip_new=self.user_m_ip.getText()
-        self.m_port_new=self.user_m_port.getText()
+        self.maya_ip_new=self.user_maya_ip.getText()
+        self.maya_port_new=self.user_maya_port.getText()
         #store user defined IP/Port incase window is closed
-        os.environ['MNET']= self.m_ip_new+':'+self.m_port_new
+        os.environ['MNET']= self.maya_ip_new+':'+self.maya_port_new
 
     def get_ui_z(self, *args):
-        self.z_ip_new=self.user_z_ip.getText()
-        self.z_port_new=self.user_z_port.getText()
+        self.zbrush_ip_new=self.user_zbrush_ip.getText()
+        self.zbrush_port_new=self.user_zbrush_port.getText()
         #store user defined IP/Port incase window is closed
-        os.environ['ZNET']=self.z_ip_new+':'+self.z_port_new
+        os.environ['ZNET']=self.zbrush_ip_new+':'+self.zbrush_port_new
 
 
     def __init__(self):
@@ -106,11 +107,11 @@ class win():
 
         self.get_ui_m()
 
-        main.stop(self.m_ip,self.m_port)
-        self.m_ip=self.m_ip_new
-        self.m_port=self.m_port_new
+        main.stop(self.maya_ip,self.maya_port)
+        self.maya_ip=self.maya_ip_new
+        self.maya_port=self.maya_port_new
 
-        status = main.start(self.m_ip,self.m_port)
+        status = main.start(self.maya_ip,self.maya_port)
         
         self.status.setBackgroundColor((1,0,.5))
         self.status.setLabel(
@@ -119,15 +120,15 @@ class win():
         if status:
             self.status.setBackgroundColor((0.0,1.0,0.5))
             self.status.setLabel(
-                    'Status: listening ('+self.m_ip+':'+str(self.m_port)+')')
+                    'Status: listening ('+self.maya_ip+':'+str(self.maya_port)+')')
 
     def execute(self, *args):
         self.get_ui_z()
-        self.z_ip=self.z_ip_new
-        self.z_port=self.z_port_new
-        main.send_to_zbrush(self.z_ip,self.z_port)
+        self.zbrush_ip=self.zbrush_ip_new
+        self.zbrush_port=self.zbrush_port_new
+        main.send_to_zbrush(self.zbrush_ip,self.zbrush_port)
         self.gui_window.setVisible(False)
 
     def execute_shelf(self, *args):
-        main.send_to_zbrush(self.z_ip,self.z_port)
+        main.send_to_zbrush(self.zbrush_ip,self.zbrush_port)
 
