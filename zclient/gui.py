@@ -11,7 +11,7 @@ import os
 
 from zclient import main
 
-class win(): 
+class Win(): 
 
     def build(self):
         
@@ -28,14 +28,16 @@ class win():
 
             self.maya_port = mnet.split(':')[1]
             self.maya_ip = mnet.split(':')[0]
+            print 'using env vars'
 
         except:
             #fall back to defaults
             self.zbrush_port = 6668
             self.zbrush_ip = '192.168.1.17'
-            # FIXME: default ip for maya should be localhost...
+            #maya defaults
             self.maya_port = 6667
-            self.maya_ip = '192.168.1.20'
+            self.maya_ip = 'localhost'
+            print 'using defaults'
 
         self.maya_port_new=self.maya_port
         self.maya_ip_new=self.maya_ip
