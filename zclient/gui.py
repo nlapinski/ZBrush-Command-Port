@@ -11,7 +11,7 @@ import os
 
 from zclient import main
 
-class win(): 
+class Win(): 
 
     def build(self):
         
