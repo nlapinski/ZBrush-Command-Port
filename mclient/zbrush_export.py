@@ -24,7 +24,6 @@ def send_osa(script_path):
 
 
 def zbrush_save(file, env, tool):
-
     """save a file from zbrush
 
     -creates a tmp file to load with zscript
@@ -35,6 +34,7 @@ def zbrush_save(file, env, tool):
 
     """
 
+    # FIXME: don't pass the environment variable name, define it in a constant
     zs_temp = NamedTemporaryFile(delete=False, suffix='.txt')
     env_expand = os.path.expandvars(env)
     print env
@@ -61,7 +61,6 @@ def zbrush_save(file, env, tool):
 
 
 def send_to_maya(file, env):
-
     """send a file to maya
 
     -cleans up past objects/shaders/textures
@@ -70,10 +69,12 @@ def send_to_maya(file, env):
     -removes zbrush temp lock file
 
     """
-
+    # FIXME: don't pass the environment variable name, define it in a constant
     env = '$' + env
 
     file_path = os.path.join(env, file + '.ma')
+
+    # FIXME: put all this code in a function that maya can import and execute on the other side
     mayaCMD = 'import maya.cmds as cmds'
     mayaCMD += '\n'
     mayaCMD += 'import maya.mel as mel'
@@ -108,17 +109,21 @@ def send_to_maya(file, env):
     mayaCMD += '\n'
     mayaCMD += 'print "SENT"'
     mayaCMD += '\n'
+
+    # wait until the zbrush file has finished saving before sending
+    # the import command to maya
     lock_file = os.path.expandvars(file_path).replace('.ma', '.zzz')
+    # FIXME: add a timeout here to avoid infinite loop
     while os.path.isfile(lock_file) == False:
         print 'waiting'
     os.remove(lock_file)
     maya = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
    
     mnet = os.getenv('MNET', "192.168.1.20:6667")
-    HOST=mnet.split(':')[0]
-    PORT=mnet.split(':')[1]
+    host = mnet.split(':')[0]
+    port = mnet.split(':')[1]
 
-    maya.connect((HOST, int(PORT)))
+    maya.connect((host, int(port)))
     maya.send(mayaCMD)
     maya.close()
 

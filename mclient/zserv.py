@@ -136,31 +136,29 @@ def zbrush_open(name):
     return zs_temp.name
 
 def listen():
-
     """waits for file open commands from maya, iterates obj list """
+    host = socket.gethostbyname(socket.getfqdn())
+    port = 6668
 
-    HOST = socket.gethostbyname(socket.getfqdn())
-    PORT = 6668
-
-    print 'Default IP: '+str(HOST)+':'+str(PORT)
+    print 'Default IP: '+str(host)+':'+str(port)
 
     znet = os.getenv('ZNET')
 
     if znet is not None:
         print 'Env IP: '+str(znet)
-        HOST=znet.split(':')[0]
-        PORT=znet.split(':')[1]
+        host = znet.split(':')[0]
+        port = znet.split(':')[1]
 
     if len(sys.argv)==2:
         args = (sys.argv)[1]
         print 'User IP: '+str(args)
-        HOST=args.split(':')[0]
-        PORT=int(args.split(':')[1])
+        host = args.split(':')[0]
+        port = int(args.split(':')[1])
 
 
     soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     time.sleep(2)
-    soc.bind((HOST, PORT))
+    soc.bind((host, port))
     soc.listen(1)
     conn, addr = soc.accept()
 
@@ -172,7 +170,7 @@ def listen():
             break
         if not data:
             break
-        if(data.split('|')[0] == 'open'):
+        if data.split('|')[0] == 'open':
             objs = data.split('|')[1].split(':')
             for obj in objs:
                 print obj
