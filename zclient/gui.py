@@ -11,6 +11,11 @@ import os
 
 from zclient import main
 
+"""a simple ui for executing commands in zclient.main
+also handles reading enviromental variables for network config
+"""
+
+
 class Win(): 
 
     def build(self):

@@ -10,6 +10,13 @@ import stat
 
 SHARED_DIR_ENV = '$ZDOCS'
 
+"""a collection of helper functions to manage command port creation 
+
+-manages sending and reciving meshes from zbrush
+-constructs lists of file names to send to mclient.zserv
+
+"""
+
 def start(ip,port):
 
     """opens a maya command port, checks for open ports and closes them """
