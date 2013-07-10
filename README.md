@@ -49,7 +49,7 @@ client for sending files to maya from zbrush,
 this is triggered by 2 ui buttons in ZBrush
 
 ```bash
-python -m mclient.zbrush_export file_name tool# save/send(0 or 1)
+python -m mclient.zbrush_export file_name tool#
 ```
 
 General Setup
