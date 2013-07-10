@@ -26,97 +26,35 @@ def send_osa(script_path):
 
     cmd = ' '.join(cmd)
     ret = os.system(cmd)
+    if ret==0:
+        try:
+            os.remove(script_path)
+            os.remove(script_path.replace('.txt','.zsc'))
+        except:
+            print 'no zscript temp file'
     return ret
 
 def zbrush_gui():
 
     """Creates a gui when zserv starts in zbrush for send all/single obj
-
     -make zscript
     -send osa/apple tell
     -'save_file' zscript sends one
     -'save_all' iterates subtools and saves each
-    -buttons call python, python calls zscript, then more python
-    ^this is where it gets really convoluded,
-    however its to prevent locking ZBrush execution
-    
-    zbrush_export(save) is called, and creates a save funciton then send to maya
+    -buttons call python to send files to maya via mclient.zbrush_export
     
     """
-
-
+    
     print 'init gui'
     script_path=os.path.dirname(os.path.abspath(__file__))
     script_path=os.path.join(script_path,'zbrush_gui.txt')
     zs_temp = open(script_path,'w+')
 
-
     #zscript for sending a sigle file to maya
 
     zscript="""
 
-
-[RoutineDef, send_file,
-
-    [VarSet, env_path, "!:#ENVPATH/"]
-
-
-    [VarSet, name, [FileNameExtract, [GetActiveToolPath], 2]]
-    [VarSet, name, [StrMerge,name,".ma"]]
-
-    [IPress, Tool:SubTool:All Low]
-    [VarSet, path, "/usr/bin/python -m mclient.zbrush_export "]
-    [VarSet, q, [SubToolGetActiveIndex]]
-   
-    [VarSet, export_path, [StrMerge,env_path,name_ma] ]
-
-
-    [MemCreate, zzz, 1, 0]
-
-    [VarSet, lock_name,[FileNameExtract, [GetActiveToolPath], 2]]
-
-    [VarSet, lock_file,[StrMerge,env_path,#lock_name,".zzz"]]
-
-    [FileNameSetNext, #export_path,"ZSTARTUP_ExportTamplates\Maya.ma"]
-
-    [IPress,Tool:Export]
-
-    [MemSaveToFile, zzz,lock_file]
-
-
-    [ShellExecute,
-        [StrMerge, #path, 
-            [StrMerge,
-                [StrMerge, #lock_name, " "],#q
-            ]
-        ]
-    ]
-
-
-
-            
-]
-
-[IButton, "TOOL:Send to Maya", "Export model as a *.ma to maya",
-    [RoutineCall, send_file]
-]
-
-    """
-
-    #zscript for sending all files to maya
-
-    zscript+="""
-
-
-[RoutineDef, send_all,
-
-    [VarSet,t,0]
-    [SubToolSelect,0]
-
-    [Loop,[SubToolGetCount],
-        [VarSet,t,t+1]
-        [SubToolSelect,t-1]
-
+    [RoutineDef, send_file,
         [VarSet, env_path, "!:#ENVPATH/"]
         [VarSet, name, [FileNameExtract, [GetActiveToolPath], 2]]
         [VarSet, name, [StrMerge,name,".ma"]]
@@ -133,19 +71,51 @@ def zbrush_gui():
         [ShellExecute,
             [StrMerge, #path, 
                 [StrMerge,
-                    [StrMerge, #lock_name, " "],#t
+                    [StrMerge, #lock_name, " "],#q
                 ]
             ]
         ]
-    ]       
-]
+    ]
 
-[IButton, "TOOL:Send to Maya -all", "Export model as a *.ma to maya",
-    [RoutineCall, send_all]
-]
+    [IButton, "TOOL:Send to Maya", "Export model as a *.ma to maya",
+        [RoutineCall, send_file]
+    ]
 
     """
-
+    #zscript for sending all files to maya
+    zscript+="""
+    [RoutineDef, send_all,
+        [VarSet,t,0]
+        [SubToolSelect,0]
+        [Loop,[SubToolGetCount],
+            [VarSet,t,t+1]
+            [SubToolSelect,t-1]
+            [VarSet, env_path, "!:#ENVPATH/"]
+            [VarSet, name, [FileNameExtract, [GetActiveToolPath], 2]]
+            [VarSet, name, [StrMerge,name,".ma"]]
+            [IPress, Tool:SubTool:All Low]
+            [VarSet, path, "/usr/bin/python -m mclient.zbrush_export "]
+            [VarSet, q, [SubToolGetActiveIndex]]
+            [VarSet, export_path, [StrMerge,env_path,name_ma] ]
+            [MemCreate, zzz, 1, 0]
+            [VarSet, lock_name,[FileNameExtract, [GetActiveToolPath], 2]]
+            [VarSet, lock_file,[StrMerge,env_path,#lock_name,".zzz"]]
+            [FileNameSetNext, #export_path,"ZSTARTUP_ExportTamplates\Maya.ma"]
+            [IPress,Tool:Export]
+            [MemSaveToFile, zzz,lock_file]
+            [ShellExecute,
+                [StrMerge, #path, 
+                    [StrMerge,
+                        [StrMerge, #lock_name, " "],#t
+                    ]
+                ]
+            ]
+        ]       
+    ]
+    [IButton, "TOOL:Send to Maya -all", "Export model as a *.ma to maya",
+        [RoutineCall, send_all]
+    ]
+    """
 
     expanded_env=os.getenv(SHARED_DIR_ENV.replace('$',''))
     zscript=zscript.replace('#ENVPATH',expanded_env)
@@ -156,7 +126,6 @@ def zbrush_gui():
 def zbrush_open(name):
 
     """open a file with zbrush
-    
     -create temp zscript file
     -load with file open commands
     -replace #TOOLNAME/#FILENAME with maya path/filename
@@ -187,8 +156,6 @@ def zbrush_open(name):
             ]
             [If, imp<1,
                     [If, a==[SubToolGetCount],
-
-
                         [IPress,Tool:SubTool:Duplicate]
                         [IPress,Tool:SubTool:MoveDown]
                         [IPress,Tool:Geometry:Del Higher]
