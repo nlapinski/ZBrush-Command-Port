@@ -1,3 +1,8 @@
+"""
+a simple ui for executing commands in zclient.main
+also handles reading enviromental variables for network config
+"""
+
 from pymel.core import window
 from pymel.core import button
 from pymel.core import rowColumnLayout
@@ -11,44 +16,36 @@ import os
 
 from zclient import main
 
-"""a simple ui for executing commands in zclient.main
-also handles reading enviromental variables for network config
-"""
+EMTPY_VALUE = '<type workstation name>'
 
-
+# FIXME: always inherit from object
 class Win(): 
+
+    def __init__(self):
+        self.build()
+        self.start_listening()
+        self.send.setCommand(self.execute)
+        self.listen.setCommand(self.start_listening)
+        
+        self.gui_window.show()
 
     def build(self):
         
         print "window init"
 
         znet = os.environ.get('ZNET')
-        mnet = os.environ.get('MNET')
-  
-
-        try:
-            #try to use env vars
-            self.zbrush_port = znet.split(':')[1]
-            self.zbrush_ip = znet.split(':')[0]
-
-            self.maya_port = mnet.split(':')[1]
-            self.maya_ip = mnet.split(':')[0]
-            print 'using env vars'
-
-        except:
-            #fall back to defaults
+        if znet:
+            self.zbrush_ip, self.zbrush_port = znet.split(':')
+        else:
             self.zbrush_port = 6668
-            self.zbrush_ip = '192.168.1.17'
-            #maya defaults
+            self.zbrush_ip = EMTPY_VALUE
+
+        mnet = os.environ.get('MNET')
+        if mnet:
+            self.maya_ip, self.maya_port = mnet.split(':')
+        else:
             self.maya_port = 6667
             self.maya_ip = 'localhost'
-            print 'using defaults'
-
-        self.maya_port_new=self.maya_port
-        self.maya_ip_new=self.maya_ip
-
-        self.zbrush_port_new=self.zbrush_port
-        self.zbrush_ip_new=self.zbrush_ip
 
         if window('goz', exists=True):
             deleteUI('goz',window=True)
@@ -64,7 +61,7 @@ class Win():
         label_zbrush_port=text(label='ZBrush PORT')
         self.user_zbrush_port=textField(text=self.zbrush_port)
         self.spacer(2)
-        self.send = button(label="Send", parent=layout)
+        self.send = button(label="Send Meshes to ZBrush", parent=layout)
         self.spacer(2)
         space = separator(style='double',height=30)
         self.spacer(1)
@@ -74,7 +71,7 @@ class Win():
         label_maya_port=text(label='Maya PORT')
         self.user_maya_port=textField(text=self.maya_port)
         self.spacer(2)
-        self.listen = button(label="Listen (cmd port)", parent=layout)
+        self.listen = button(label="Listen for Meshes from ZBrush", parent=layout)
         self.spacer(2)
         self.status=text(label='Status: not listening',
             height=30,
@@ -86,37 +83,33 @@ class Win():
         for i in range(0,num):
             space=separator(style='none')
 
-    def get_ui_m(self, *args):
-        self.maya_ip_new=self.user_maya_ip.getText()
-        self.maya_port_new=self.user_maya_port.getText()
+    def get_maya_settings(self, *args):
+        maya_ip = self.user_maya_ip.getText()
+        maya_port = self.user_maya_port.getText()
         #store user defined IP/Port incase window is closed
-        os.environ['MNET']= self.maya_ip_new+':'+self.maya_port_new
+        os.environ['MNET'] = maya_ip+':'+maya_port
+        return maya_ip, maya_port
 
-    def get_ui_z(self, *args):
-        self.zbrush_ip_new=self.user_zbrush_ip.getText()
-        self.zbrush_port_new=self.user_zbrush_port.getText()
+    def get_zbrush_settings(self, *args):
+        zbrush_ip = self.user_zbrush_ip.getText()
+        if zbrush_ip == EMTPY_VALUE:
+            # FIXME: bring up an error gui
+            pass
+        zbrush_port = self.user_zbrush_port.getText()
         #store user defined IP/Port incase window is closed
-        os.environ['ZNET']=self.zbrush_ip_new+':'+self.zbrush_port_new
-
-
-    def __init__(self):
-        self.build()
-        self.start_listening()
-        self.send.setCommand(self.execute)
-        self.listen.setCommand(self.start_listening)
-        
-        self.gui_window.show()
+        os.environ['ZNET'] = zbrush_ip+':'+zbrush_port
+        return zbrush_ip, zbrush_port
 
     def show(self):
         self.gui_window.show()
 
     def start_listening(self, *args):
         """open maya command port using .main.start()"""
-        self.get_ui_m()
+        maya_ip, maya_port = self.get_maya_settings()
 
         main.stop(self.maya_ip,self.maya_port)
-        self.maya_ip=self.maya_ip_new
-        self.maya_port=self.maya_port_new
+        self.maya_ip = maya_ip
+        self.maya_port = maya_port
 
         status = main.start(self.maya_ip,self.maya_port)
         
@@ -130,13 +123,12 @@ class Win():
                     'Status: listening ('+self.maya_ip+':'+str(self.maya_port)+')')
 
     def execute(self, *args):
-        self.get_ui_z()
-        self.zbrush_ip=self.zbrush_ip_new
-        self.zbrush_port=self.zbrush_port_new
-        main.send_to_zbrush(self.zbrush_ip,self.zbrush_port)
+        self.zbrush_ip, self.zbrush_port = self.get_zbrush_settings()
+        main.send_to_zbrush(self.zbrush_ip, self.zbrush_port)
         self.gui_window.setVisible(False)
 
-    def execute_shelf(self, *args):
-        """used for shelf send (so you dont need the gui all the time): """
-        main.send_to_zbrush(self.zbrush_ip,self.zbrush_port)
+def execute_shelf():
+    """used for shelf send (so you dont need the gui all the time)"""
+    zbrush_ip, zbrush_port = os.environ['ZNET'].split(':')
+    main.send_to_zbrush(zbrush_ip, zbrush_port)
 

@@ -51,9 +51,9 @@ def send_to_maya(file):
     maya = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print mayaCMD
 
+    # FIXME: get rid of this default value. error if MNET is not set
     mnet = os.getenv('MNET', "192.168.1.20:6667")
-    host = mnet.split(':')[0]
-    port = mnet.split(':')[1]
+    host, port = mnet.split(':')
 
     maya.connect((host, int(port)))
     maya.send(mayaCMD)

@@ -180,13 +180,14 @@ def listen():
 
     print 'listening on: '+str(host)+':'+str(port)
 
+    # FIXME: can this even work from a host other than localhost?
     znet = os.getenv('ZNET')
 
     if znet is not None:
         print 'listening on: '+str(znet)
-        host = znet.split(':')[0]
-        port = znet.split(':')[1]
+        host, port = znet.split(':')
 
+    # FIXME: pass these are args from __main__
     if len(sys.argv)==2:
         args = (sys.argv)[1]
         print 'listening on: '+str(args)
@@ -195,6 +196,7 @@ def listen():
 
 
     soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # FIXME: why are we sleeping here?
     time.sleep(2)
     soc.bind((host, port))
     soc.listen(1)
@@ -226,4 +228,6 @@ if __name__ == "__main__":
     print "GUI Installed" if not err_code else 0
     print 'Sever Started!'
     while 1:
+        # FIXME: how often are we reconnecting?  shouldn't we just connect once and keep it alive until the process is killed?
+        # maybe look into SocketServer module
         listen()
