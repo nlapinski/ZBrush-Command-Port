@@ -12,14 +12,14 @@ from pymel.core import separator
 from pymel.core import loadPlugin
 from pymel.core import selected
 from pymel.core import deleteUI
+from pymel.core import confirmDialog
 import os
 
 from zclient import main
 
 EMTPY_VALUE = '<type workstation name>'
 
-# FIXME: always inherit from object
-class Win(): 
+class Win(object): 
 
     def __init__(self):
         self.build()
@@ -93,7 +93,10 @@ class Win():
     def get_zbrush_settings(self, *args):
         zbrush_ip = self.user_zbrush_ip.getText()
         if zbrush_ip == EMTPY_VALUE:
-            # FIXME: bring up an error gui
+            #bring up an error gui
+            confirmDialog(title='Error',
+                    message='Please set a ZBrush IP',
+                    button=['Ok'])
             pass
         zbrush_port = self.user_zbrush_port.getText()
         #store user defined IP/Port incase window is closed
