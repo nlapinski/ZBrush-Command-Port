@@ -117,7 +117,7 @@ def zbrush_gui():
     ]
     """
 
-    expanded_env=os.getenv(SHARED_DIR_ENV.replace('$',''))
+    expanded_env=os.path.expandvars(SHARED_DIR_ENV)
     zscript=zscript.replace('#ENVPATH',expanded_env)
 
     zs_temp.write(zscript)

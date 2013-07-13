@@ -52,7 +52,7 @@ def send_to_maya(file):
     print mayaCMD
 
     # FIXME: get rid of this default value. error if MNET is not set
-    mnet = os.getenv('MNET', "192.168.1.20:6667")
+    mnet = os.getenv('MNET', "localhost:6667")
     host, port = mnet.split(':')
 
     maya.connect((host, int(port)))
@@ -69,6 +69,4 @@ if __name__ == "__main__":
     """
 
     file = (sys.argv)[1]
-    tool = (sys.argv)[2]
-    
     send_to_maya(file)
