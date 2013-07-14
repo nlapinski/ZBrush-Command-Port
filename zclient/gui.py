@@ -20,15 +20,21 @@ from zclient import main
 
 #does this return the current host name?
 EMTPY_VALUE = '<type workstation name>'
+   
 
-class Win(object): 
+class Win(object):
+
+    """
+    methods
+        __init__ -- build GUI, commandPort, display window...
+        build    -- constructs a pymel gui
+    """
 
     def __init__(self):
         self.build()
         self.start_listening()
         self.send.setCommand(self.execute)
         self.listen.setCommand(self.start_listening)
-        
         self.gui_window.show()
 
     def build(self):
@@ -50,6 +56,7 @@ class Win(object):
         """
         
         print "window init"
+        self.socket=None
 
         znet = os.environ.get('ZNET')
         if znet:
@@ -66,13 +73,9 @@ class Win(object):
             #may resolve to localhost, or 127.0.0.1, this will raise an error
             external_ip = socket.gethostbyname(socket.getfqdn())
             if external_ip == '127.0.0.1':
-                print 'ip err'
-                print 'could not resolve external IP'
-                print 'defaulting to IP/HOST from  MNET or gui'
                 error_gui('Could no resolve external IP')
             else:
                 self.maya_ip = external_ip
-                print 'resolved local ip'
 
         if window('goz', exists=True):
             deleteUI('goz',window=True)
@@ -111,20 +114,15 @@ class Win(object):
             space=separator(style='none')
 
     def validate_ip(self,ip_addr):
-        return socket.inet_aton(ip_addr)
+        socket.inet_aton(ip_addr)
 
     def get_maya_settings(self, *args):
         maya_ip = self.user_maya_ip.getText()
         maya_ip = socket.gethostbyname(maya_ip)
-        try:
-            self.validate_ip(maya_ip)
-        except socket.error:
-            return socket.error
-        else:
-            maya_port = self.user_maya_port.getText()
-            #store user defined IP/Port incase window is closed
-            os.environ['MNET'] = maya_ip+':'+maya_port
-            return maya_ip, maya_port
+        maya_port = self.user_maya_port.getText()
+        #store user defined IP/Port incase window is closed
+        os.environ['MNET'] = maya_ip+':'+maya_port
+        return maya_ip, maya_port
 
     def get_zbrush_settings(self, *args):
         zbrush_ip = self.user_zbrush_ip.getText()
@@ -153,30 +151,55 @@ class Win(object):
             self.maya_ip = maya_ip
             self.maya_port = maya_port
 
-            status = main.start(self.maya_ip,self.maya_port)
-        
-            self.status.setBackgroundColor((1,0,.5))
-            self.status.setLabel(
+            try:
+                status = main.start(self.maya_ip,self.maya_port)
+            except RuntimeError:
+                error_gui('Could not create commandPort, invalid port')
+                self.status.setBackgroundColor((1,0,.5))
+                self.status.setLabel(
                     'Status: not listening')
-
-            if status:
+                pass
+            else:
                 self.status.setBackgroundColor((0.0,1.0,0.5))
                 self.status.setLabel(
                         'Status: listening ('+self.maya_ip+':'+str(self.maya_port)+')')
-            else:
-                error_gui('Please specify a valid Maya Host or IP')
+
 
     def execute(self, *args):
+
+        #check zbrush ip and port for validity
         try:
             self.zbrush_ip, self.zbrush_port = self.get_zbrush_settings()
-            main.send_to_zbrush(self.zbrush_ip, self.zbrush_port)
         except TypeError:
             error_gui('Plese specifiy a valid ZBrush IP')
-        except IndexError:
+            return
+        #check for valid connection, or establish one
+        if self.socket is None:
+            print 'opening socket'
+            try:
+                self.socket=main.open_zbrush_client(self.zbrush_ip,self.zbrush_port)
+            except socket.error, e:
+                if '[Errno 111]' in str(e):
+                    error_gui('Make sure zserv is up listening')
+                if '[Errno 32]' in str(e):
+                    error_gui('Make sure zserv is up and listening')
+                return
+            except ValueError:
+                error_gui('Invalid ZBrush Port')
+                return
+            except Exception, e:
+                error_gui ('uncaught exception: %s'%str(e))
+                raise
+        try:
+            main.send_to_zbrush(self.socket)
+        except TypeError:
             error_gui('Please select a polygon object')
-        else:
-            self.gui_window.setVisible(False)
-
+        except IOError:
+            error_gui('Make sure zserv is up and listening')
+            self.socket = None
+        except Exception, e:
+            error_gui( 'uncaught exception: %s'%str(e))
+            raise
 
 def error_gui(message):
     """ simple gui for displaying errors """
@@ -185,18 +208,14 @@ def error_gui(message):
                 message= str(message),
                 button=['Ok'])
 
-def execute_shelf():
+def execute_shelf(socket):
     """
     used for shelf send (so you dont need the gui all the time)
     
     checks ZNET is valid, checks for an object in current seleciton
     """
     try:
-        zbrush_ip, zbrush_port = os.environ['ZNET'].split(':')
-        main.send_to_zbrush(zbrush_ip, zbrush_port)
-    except KeyError:
-        error_gui('ZNET is undefined')
-    except IndexError:
+        main.send_to_zbrush(socket)
+    except TypeError:
         error_gui('Please select a polygon object')
-        
-
+   
