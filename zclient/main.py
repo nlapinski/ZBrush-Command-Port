@@ -65,7 +65,7 @@ def stop(ip,port):
     """close a maya command port """
     try:
         cmds.commandPort(name="%s:%s"%(ip,port),close=True)
-        print 'closing... '+addr
+        print 'closing... '
     except RuntimeError:
         print 'no open sockets'
 
