@@ -28,8 +28,9 @@ def send_osa(script_path):
     ret = os.system(cmd)
     if ret==0:
         try:
-            os.remove(script_path)
-            os.remove(script_path.replace('.txt','.zsc'))
+            print 'a'
+            #os.remove(script_path)
+            #os.remove(script_path.replace('.txt','.zsc'))
         except:
             print 'no zscript temp file'
     return ret
@@ -62,12 +63,9 @@ def zbrush_gui():
         [VarSet, path, "/usr/bin/python -m mclient.zbrush_export "]
         [VarSet, q, [SubToolGetActiveIndex]]
         [VarSet, export_path, [StrMerge,env_path,name_ma] ]
-        [MemCreate, zzz, 1, 0]
         [VarSet, lock_name,[FileNameExtract, [GetActiveToolPath], 2]]
-        [VarSet, lock_file,[StrMerge,env_path,#lock_name,".zzz"]]
         [FileNameSetNext, #export_path,"ZSTARTUP_ExportTamplates\Maya.ma"]
         [IPress,Tool:Export]
-        [MemSaveToFile, zzz,lock_file]
         [ShellExecute,
             [StrMerge, #path, 
                 [StrMerge,
@@ -97,12 +95,9 @@ def zbrush_gui():
             [VarSet, path, "/usr/bin/python -m mclient.zbrush_export "]
             [VarSet, q, [SubToolGetActiveIndex]]
             [VarSet, export_path, [StrMerge,env_path,name_ma] ]
-            [MemCreate, zzz, 1, 0]
             [VarSet, lock_name,[FileNameExtract, [GetActiveToolPath], 2]]
-            [VarSet, lock_file,[StrMerge,env_path,#lock_name,".zzz"]]
             [FileNameSetNext, #export_path,"ZSTARTUP_ExportTamplates\Maya.ma"]
             [IPress,Tool:Export]
-            [MemSaveToFile, zzz,lock_file]
             [ShellExecute,
                 [StrMerge, #path, 
                     [StrMerge,
