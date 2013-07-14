@@ -16,6 +16,7 @@ from pymel.core import confirmDialog
 import socket
 import os
 
+from zclient import err
 from zclient import main
 
 #does this return the current host name?
@@ -192,14 +193,29 @@ class Win(object):
                 raise
         try:
             main.send_to_zbrush(self.socket)
-        except TypeError:
+        except TypeError,e:
             error_gui('Please select a polygon object')
         except IOError:
             error_gui('Make sure zserv is up and listening')
             self.socket = None
+        except err.ZBrushNameError,e:
+            rename_gui(e.obj,e.goz_id,self.socket)
         except Exception, e:
             error_gui( 'uncaught exception: %s'%str(e))
             raise
+
+def rename_gui(obj,goz_id,sock):
+    """ simple gui for confirming object rename"""
+    c = confirmDialog(title="ZBrush Name Conflict",
+                message="%s has a old ZBrush ID, of %s, try to relink?" % (obj,goz_id),
+                button=['Relink','Create'])
+    if 'Relink' in c:
+        main.relink(obj,goz_id)
+        main.send_to_zbrush(sock)
+    if 'Create' in c:
+        main.create(obj,goz_id)
+        main.send_to_zbrush(sock)
+        print 'time make a new one'
 
 def error_gui(message):
     """ simple gui for displaying errors """

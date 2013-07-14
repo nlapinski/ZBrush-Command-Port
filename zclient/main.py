@@ -8,6 +8,8 @@ import time
 import sys
 import stat
 
+from zclient import err
+
 SHARED_DIR_ENV = '$ZDOCS'
 
 """a collection of helper functions to manage command port creation 
@@ -127,6 +129,39 @@ def open_zbrush_client(host,port):
 def close_zbrush_client(sock):
     sock.close()
 
+def relink(obj,goz_id):
+    pre_sel=cmds.ls(sl=True)
+    cmds.delete(obj,ch=True)
+    cmds.rename(obj,goz_id)
+    cmds.select(cl=True)
+    cmds.select(goz_id)
+    shape=cmds.pickWalk(direction='down')[0]
+
+    goz_check=cmds.attributeQuery('GoZBrushID',node=shape,exists=True)
+
+    if goz_check is False:
+        cmds.addAttr(shape,longName='GoZBrushID',dataType='string')
+    
+    cmds.setAttr(shape+'.GoZBrushID',goz_id,type='string')
+    cmds.select(cl=True)
+    pre_sel.remove(obj)
+    pre_sel.append(goz_id)
+    cmds.select(pre_sel)
+    print 'relink'
+
+def create(obj,goz_id):
+    pre_sel=cmds.ls(sl=True)
+    cmds.delete(obj,ch=True)
+
+    cmds.select(cl=True)
+    cmds.select(obj)
+    shape=cmds.pickWalk(direction='down')[0]
+
+    goz_check=cmds.attributeQuery('GoZBrushID',node=shape,exists=True)
+    if goz_check:
+        cmds.setAttr(shape+'.GoZBrushID',obj,type='string')
+    cmds.select(pre_sel)
+
 def send_to_zbrush(sock):
     """send some objects to zbrush
 
@@ -155,21 +190,45 @@ def send_to_zbrush(sock):
     cmds.select(objs)
     cmds.pickWalk(direction='up')
     objs = cmds.ls(selection=True)
+    cmds.select(objs)
     
     if objs:
 
         cmds.makeIdentity(apply=True, t=1, r=1, s=1, n=0)
-        cmds.delete(ch=True)
+        #cmds.delete(ch=True)
 
         for obj in objs:
+            
+            goz_check=cmds.attributeQuery('GoZBrushID',node=obj,exists=True)
+
+            if goz_check:
+                goz_id=cmds.getAttr(obj+'.GoZBrushID')
+                if obj!=goz_id:
+                    print obj, goz_id,'name mismatch'
+                    print 'rename'
+                    raise err.ZBrushNameError(obj,goz_id,'rename')
+            else:
+                history=cmds.listHistory(obj)
+                for old_obj in history:
+                    goz_check=cmds.attributeQuery('GoZBrushID',
+                                                    node=old_obj,
+                                                    exists=True)
+                    if goz_check:
+                        goz_id=cmds.getAttr(old_obj+'.GoZBrushID')
+                        if obj!=goz_id:
+                            print 'rename'
+                            raise err.ZBrushNameError(obj,goz_id,'History: rename')
+            
+
             cmds.select(cl=True)
             cmds.select(obj)
+            cmds.delete(ch=True)
+
             print obj
             print 'Maya >> ZBrush'
             name = os.path.relpath(obj + '.ma')
             ascii_file = os.path.join(SHARED_DIR_ENV, name)
             expanded_path = os.path.expandvars(ascii_file)
-            print ascii_file
             #except if non-existant, new file
             try:
                 os.remove(expanded_path)
@@ -201,3 +260,5 @@ def send_to_zbrush(sock):
     else:
         #raises a error for gui to display
         raise IndexError
+
+
