@@ -52,6 +52,7 @@ def start(ip,port):
             print 'socket in use'
         else:
             print 'failed to open commandport'
+            raise err
     else:
         print 'cmd port open... %s:%s'%(ip,port)
 
@@ -65,7 +66,7 @@ def stop(ip,port):
     try:
         cmds.commandPort(name="%s:%s"%(ip,port),close=True)
         print 'closing... '+addr
-    except:
+    except RuntimeError:
         print 'no open sockets'
 
 def get_from_zbrush(file_path):
@@ -115,7 +116,18 @@ def get_from_zbrush(file_path):
     cmds.file(file_path,i=True,usingNamespaces=False,removeDuplicateNetworks=True)
     print 'Imported: '+ascii_file
 
-def send_to_zbrush(host, port):
+def open_zbrush_client(host,port):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect((host, int(port)))
+    except socket.error, e:
+        raise e
+    return s
+
+def close_zbrush_client(sock):
+    sock.close()
+
+def send_to_zbrush(sock):
     """send some objects to zbrush
 
     -cleans history, freeze xforms
@@ -133,9 +145,9 @@ def send_to_zbrush(host, port):
         os.environ[SHARED_DIR_ENV.replace('$','')]
     except KeyError:
         print 'ZDOCS not set'
+        raise
     else:
         print 'found ZDOCS'
-
 
     #send only mesh types!
     objs = cmds.ls(selection=True,type='mesh',dag=True)
@@ -154,7 +166,6 @@ def send_to_zbrush(host, port):
             cmds.select(obj)
             print obj
             print 'Maya >> ZBrush'
-            print host+':'+port
             name = os.path.relpath(obj + '.ma')
             ascii_file = os.path.join(SHARED_DIR_ENV, name)
             expanded_path = os.path.expandvars(ascii_file)
@@ -174,16 +185,18 @@ def send_to_zbrush(host, port):
             #make sure zbrush can acess this file
             os.chmod(expanded_path,stat.S_IRWXO | stat.S_IRWXU | stat.S_IRWXG)
 
-        # FIXME: deal with connection errors
-        # FIXME: shouldn't we connect once and send many times, instead of connect for each object?
+
+        #network code only connects once, and sends
+        #checks for zbrush response, or mitigates connection errors
         try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect((host, int(port)))
-            s.send('open|' + ':'.join(objs))
-            print ('open|' + ':'.join(objs))
-            s.close()
-        except:
-            print 'Too many send commands'
+            sock.send('open|' + ':'.join(objs))
+            if sock.recv(1024):
+                print 'zbrush loaded:'
+                print ('\n'.join(objs))
+            else:
+                raise IOError
+        except Exception,e:
+            raise e
 
     else:
         #raises a error for gui to display
