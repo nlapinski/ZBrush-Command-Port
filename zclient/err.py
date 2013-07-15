@@ -1,32 +1,22 @@
 #!/usr/bin/python
 
-from contextlib import contextmanager
-
-@contextmanager
-def handler():
-    try:
-        yield
-    except IpError, e:
-        print e
-    except PortError,e:
-        print e
-    except Error,e:
-        print e
-    finally:
-        pass
-
-class Error(Exception):
+class ZDOCSError(Exception):
     """
-    Base exception class
-    """
-    pass
+    Exception raised for missing ZDOCS env
 
-class IpError(Error):
+    Attributes
+        msg -- gui message
+    """
+    def __init__(self,msg):
+        self.msg=msg
+
+
+class IpError(Exception):
     """
     Exception raised for invalid IP addresses
 
     Attribitues
-        ipo -- input ip address
+        ip -- input ip address
         msg -- gui message
 
     """
@@ -34,9 +24,8 @@ class IpError(Error):
     def __init__(self,ip,msg):
         self.ip=ip
         self.msg=msg
-        error_gui(msg)
 
-class PortError(Error):
+class PortError(Exception):
 
     """
     Exception raised for invalid socket ports
@@ -45,13 +34,22 @@ class PortError(Error):
         port -- input port
         msg  -- gui msg
     """
-
     def __init__(self,port,msg):
         self.port=port
         self.msg=msg
-        error_gui(msg)
+        self.message=msg
 
-class ZBrushNameError(Error):
+class ZBrushServError(Exception):
+    """
+    Exception raised for connection refuse from zserv
+
+    Attributes
+        msg -- gui msg
+    """
+    def __init__(self,msg):
+        self.msg=msg
+
+class ZBrushNameError(Exception):
 
     """
     Exception raised for Zbrush naming conflict
@@ -66,4 +64,30 @@ class ZBrushNameError(Error):
     def __init__(self,obj,goz_id,msg):
         self.obj=obj
         self.goz_id=goz_id
+        self.msg=msg
+
+class SelectionError(Exception):
+
+    """
+    Exception raise for no file mesh selected
+
+    Attributes
+        msg -- gui msg
+
+    """
+
+    def __init__(self,msg):
+        self.msg=msg
+
+class InUseError(Exception):
+
+    """
+    Exception raise for commandPort in use (socket in use)
+
+    Attributes
+        msg -- gui msg
+
+    """
+
+    def __init__(self,msg):
         self.msg=msg
