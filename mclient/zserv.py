@@ -224,6 +224,7 @@ def zbrush_open(name):
     return zs_temp.name
 
 if __name__ == "__main__":
+    # FIXME: we're installing the scripts every time we run the server, is that OK?
     zbrush_ui_script = zbrush_gui()
     err_code = send_osa(zbrush_ui_script)
 
@@ -241,6 +242,7 @@ if __name__ == "__main__":
     except socket.error, e:
         import errno
         print e
+        # use errno module here (google examples), don't just check strings. 
         if '[Errno 48]' in str(e):
             print 'please wait a few seconds before relaunching'
         else:

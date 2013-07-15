@@ -19,6 +19,7 @@ SHARED_DIR_ENV = '$ZDOCS'
 
 """
 
+# FIXME: make a MayaServer class ----------
 def start(ip,port):
     """opens a maya command port, checks for open ports and closes them
 
@@ -118,6 +119,10 @@ def get_from_zbrush(file_path):
     cmds.file(file_path,i=True,usingNamespaces=False,removeDuplicateNetworks=True)
     print 'Imported: '+ascii_file
 
+# FIXME: ------ end MayaServer class ----------
+
+
+# FIXME: make a ZBrushClient class ----------
 def open_zbrush_client(host,port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
@@ -129,6 +134,7 @@ def open_zbrush_client(host,port):
 def close_zbrush_client(sock):
     sock.close()
 
+# FIXME: not in ZBrushClient 
 def relink(obj,goz_id):
     pre_sel=cmds.ls(sl=True)
     cmds.delete(obj,ch=True)
@@ -149,6 +155,7 @@ def relink(obj,goz_id):
     cmds.select(pre_sel)
     print 'relink'
 
+# FIXME: not in ZBrushClient 
 def create(obj,goz_id):
     pre_sel=cmds.ls(sl=True)
     cmds.delete(obj,ch=True)
@@ -184,6 +191,8 @@ def send_to_zbrush(sock):
     else:
         print 'found ZDOCS'
 
+    # FIXME: extract a new function for doing the object exporting work. keep export separate from the socket work
+    # ---- start separate function here -------------
     #send only mesh types!
     objs = cmds.ls(selection=True,type='mesh',dag=True)
     cmds.select(cl=True)
@@ -243,7 +252,7 @@ def send_to_zbrush(sock):
                         exportSelected=True)
             #make sure zbrush can acess this file
             os.chmod(expanded_path,stat.S_IRWXO | stat.S_IRWXU | stat.S_IRWXG)
-
+    # ---- end separate function here, returng list of objects -------------
 
         #network code only connects once, and sends
         #checks for zbrush response, or mitigates connection errors
@@ -258,6 +267,7 @@ def send_to_zbrush(sock):
             raise e
 
     else:
+        # FIXME: don't just use an index error. use a GoZError, or create a ZBrushClientError (see FIXME in zclient.err)
         #raises a error for gui to display
         raise IndexError
 

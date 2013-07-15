@@ -20,6 +20,7 @@ from zclient import err
 from zclient import main
 
 #does this return the current host name?
+# FIXME: EMPTY_VALUE is just meant for display in the GUI, and should be interpreted as 'localhost'
 EMTPY_VALUE = '<type workstation name>'
    
 
@@ -57,6 +58,7 @@ class Win(object):
         """
         
         print "window init"
+        # FIXME: don't store a socket, store a ZBrushClient instance (see other FIXMEs)
         self.socket=None
 
         znet = os.environ.get('ZNET')
@@ -148,6 +150,7 @@ class Win(object):
         except socket.error:
             error_gui('Plese specifiy a valid Maya Host or IP')
         else:
+            # FIXME: use MayaServer class here (see other FIXMEs)
             main.stop(self.maya_ip,self.maya_port)
             self.maya_ip = maya_ip
             self.maya_port = maya_port
@@ -159,6 +162,7 @@ class Win(object):
                 self.status.setBackgroundColor((1,0,.5))
                 self.status.setLabel(
                     'Status: not listening')
+                # FIXME: no need for pass here
                 pass
             else:
                 self.status.setBackgroundColor((0.0,1.0,0.5))
