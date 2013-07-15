@@ -14,7 +14,8 @@ from zclient.err import *
 from zclient import main
 from contextlib import contextmanager
 #does this return the current host name?
-EMTPY_VALUE = '<type workstation name>'
+
+EMTPY_VALUE = 'localhost'
 
 
 """
@@ -98,19 +99,16 @@ class Win(object):
             self.zbrush_ip, self.zbrush_port = znet.split(':')
         else:
             self.zbrush_port = 6668
-            self.zbrush_ip = EMTPY_VALUE
+            external_ip = socket.gethostbyname(socket.getfqdn())
+            self.zbrush_ip=external_ip
 
         mnet = os.environ.get('MNET')
         if mnet:
             self.maya_ip, self.maya_port = mnet.split(':')
         else:
             self.maya_port = 6667
-            #may resolve to localhost, or 127.0.0.1, this will raise an error
             external_ip = socket.gethostbyname(socket.getfqdn())
-            if external_ip == '127.0.0.1':
-                error_gui('Could no resolve external IP')
-            else:
-                self.maya_ip = external_ip
+            self.maya_ip = external_ip
 
         if window('goz', exists=True):
             deleteUI('goz',window=True)

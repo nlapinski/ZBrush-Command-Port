@@ -19,13 +19,15 @@ ZBrush server extends the socket server request handler
 
 """
 
+EMTPY_VALUE = '<type workstation name>'
 SHARED_DIR_ENV='$ZDOCS'
 
 class ZBrushServer(SocketServer.ThreadingMixIn,SocketServer.TCPServer):
     """
     ZBrush server, allows quick rebind
     """
-    
+   
+    timeout = 5
     daemon_threads=True
     allow_reuse_address=True
 
@@ -34,6 +36,9 @@ class ZBrushServer(SocketServer.ThreadingMixIn,SocketServer.TCPServer):
                     self,
                     server_address,
                     RequestHandlerClass)
+
+    def handle_timeout(self):
+        print 'TIMEOUT'
 
 
 class ZBrushHandler(SocketServer.BaseRequestHandler):
@@ -44,14 +49,16 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
 
     """
 
+    timeout = 5
+
     def handle(self):
         while 1:
             try:
 
                 self.data = self.request.recv(1024).strip()
                 if not self.data:
-                    break
                     self.request.close()
+                    break
                 print '\n\n'
                 print '{} sent:'.format(self.client_address[0])
                 print self.data
@@ -232,17 +239,25 @@ if __name__ == "__main__":
     print "GUI Installed" if not err_code else 0
 
 
-    host = socket.gethostbyname(socket.getfqdn())
-    port = 6668
+    znet = os.environ.get('ZNET')
+    
+    if znet:
+        host, port = znet.split(':')
+    else:
+        port = 6668
+        host = socket.gethostbyname(socket.getfqdn())
+    
 
     try:
-        server = ZBrushServer((host,port),ZBrushHandler)
+        server = ZBrushServer((host,int(port)),ZBrushHandler)
         server.allow_reuse_address=True
+        print 'Serving on %s:%s'% (host,port)
     except socket.error, e:
         import errno
-        print e
-        if '[Errno 48]' in str(e):
+        errcode=e[0]
+        if errcode==errno.EADDRINUSE:
             print 'please wait a few seconds before relaunching'
+            print 'there was a disconnect with a client attached'
         else:
             print 'unhandled exception!'
     else:

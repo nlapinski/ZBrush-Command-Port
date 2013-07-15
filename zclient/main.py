@@ -1,4 +1,4 @@
-#!/usr/bin/python
+    #!/usr/bin/python
 
 import socket
 import maya.cmds as cmds
@@ -68,7 +68,15 @@ def start(ip,port):
     except socket.error:
         raise IpError(ip,'Please specify a valid IP for Maya')
 
-    stop(ip,port)
+
+    #stop(ip,port)
+
+
+    status = cmds.commandPort("%s:%s"%(ip,port),q=True)
+
+    if status == True:
+        print 'listening on: %s:%s'%(ip,port)
+        return status
 
     try:
         cmds.commandPort(name="%s:%s" % (ip,port),
@@ -76,11 +84,13 @@ def start(ip,port):
                         sourceType='python')
 
         print 'opening... %s:%s' % (ip,port)
-    
+
+
     except RuntimeError, err:
         if 'already active' in str(err):
             print 'socket in use, close-reopen'
-            raise InUseError('Socket already in use')
+            return status
+            #raise InUseError('Socket already in use')
         else:
             print 'failed to open commandport'
             raise IpError(ip,'Please specify a valid IP for Maya')
@@ -95,9 +105,10 @@ def start(ip,port):
 def stop(ip,port):
     """close a maya command port """
     try:
-        cmds.commandPort(name="%s:%s"%(ip,port),close=True)
+        cmds.commandPort(name="%s:%s" % (ip,port),echoOutput=False,sourceType='python',close=True)
         print 'closing... '
-    except RuntimeError:
+    except RuntimeError,e:
+        print e
         print 'no open sockets'
 
 def get_from_zbrush(file_path):
