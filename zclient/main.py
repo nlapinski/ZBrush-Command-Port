@@ -8,6 +8,8 @@ import time
 import sys
 import stat
 
+from threading import Thread
+
 from zclient.err import *
 
 SHARED_DIR_ENV = '$ZDOCS'
@@ -163,7 +165,14 @@ def open_zbrush_client(host,port):
     except socket.error,e:
         if '[Errno 111]' in str(e):
             raise ZBrushServError('Please ensure zserv is running')
+    try:
+        s.send('')
+    except socket.error,e:
+            raise ZBrushServError('Please ensure zserv is running')
+
     return s
+
+
 
 def close_zbrush_client(sock):
     sock.close()
@@ -280,16 +289,25 @@ def send_to_zbrush(sock):
 
         #network code only connects once, and sends
         #checks for zbrush response, or mitigates connection errors
+
+
         try:
             sock.send('open|' + ':'.join(objs))
-            if sock.recv(1024):
-                print 'zbrush loaded:'
-                print ('\n'.join(objs))
-            else:
-                raise IOError
+        except socket.error,e:
+                raise ZBrushServError('Please make sure zserv is running')
+        except AttributeError:
+            return
+            pass
         except Exception,e:
-            raise e
+                raise e
 
+
+        if sock.recv(1024)=='loaded':
+            print 'zbrush loaded:'
+            print ('\n'.join(objs))
+            return sock
+        else:
+            return None
     else:
         #raises a error for gui to display
         raise SelectionError('Please select a mesh to send to ZBrush')

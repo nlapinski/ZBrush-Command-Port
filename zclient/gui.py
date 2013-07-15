@@ -194,20 +194,23 @@ class Win(object):
         #check for valid connection, or establish one
         with err_handler():
             self.socket=main.open_zbrush_client(self.zbrush_ip,self.zbrush_port)
-        print 'opening socket'
+            print 'opening socket'
 
     def execute(self, *args):
 
-        self.zbrush_ip, self.zbrush_port = self.get_zbrush_settings()
-        
+        self.zbrush_ip, self.zbrush_port = self.get_zbrush_settings()        
         #check for valid connection, or establish one
-        with err_handler():
-            self.socket=main.open_zbrush_client(self.zbrush_ip,self.zbrush_port)
-        print 'opening socket'
 
-        if self.socket is not None:    
+
+        with err_handler():
+            self.socket=main.send_to_zbrush(self.socket)
+
+
+        if self.socket is None:
             with err_handler():
-                main.send_to_zbrush(self.socket)
+                print 'new socket'
+                self.socket=main.open_zbrush_client(self.zbrush_ip,self.zbrush_port)
+                self.socket=main.send_to_zbrush(self.socket)
 
 
 def rename_gui(obj,goz_id,sock):
