@@ -1,22 +1,74 @@
 #!/usr/bin/python
 
+import SocketServer
 import socket
 import subprocess
 import time
 import os
 import sys
 
-"""Starts a server which listens for commands sent from Maya.
+"""
+Starts a server which listens for commands sent from Maya.
 When it receives an 'open|path1:path2' command,
 triggers the opening of the zbrush files via appleScript
 
 On load if ZBrush is not open it will try to open it 
 and install 2 GUI buttons for sending single or all meshes to maya
 
+ZBrush server extends the socket server request handler
 
 """
 
 SHARED_DIR_ENV='$ZDOCS'
+
+class ZBrushServer(SocketServer.ThreadingMixIn,SocketServer.TCPServer):
+    """
+    ZBrush server, allows quick rebind
+    """
+    
+    daemon_threads=True
+    allow_reuse_address=True
+
+    def __init__(self,server_address,RequestHandlerClass):
+        SocketServer.TCPServer.__init__(
+                    self,
+                    server_address,
+                    RequestHandlerClass)
+
+
+class ZBrushHandler(SocketServer.BaseRequestHandler):
+    """
+    The base RequestHandler for accepting commands from maya
+
+    It is instantiated once per connection to the server (1)
+
+    """
+
+    def handle(self):
+        while 1:
+            try:
+
+                self.data = self.request.recv(1024).strip()
+                if not self.data:
+                    break
+                    self.request.close()
+                print '\n\n'
+                print '{} sent:'.format(self.client_address[0])
+                print self.data
+
+                if self.data.split('|')[0] == 'open':
+                    objs = self.data.split('|')[1].split(':')
+                    for obj in objs:
+                        print 'got: '+obj
+                        zs_temp = zbrush_open(obj+'.ma')
+                        send_osa(zs_temp)
+                    print 'loaded all objs!'
+                    self.request.send('loaded')
+            except KeyboardInterrupt:
+                self.request.close()
+                break
+
+
 
 def send_osa(script_path):
     cmd = ['osascript -e',
@@ -26,13 +78,6 @@ def send_osa(script_path):
 
     cmd = ' '.join(cmd)
     ret = os.system(cmd)
-    if ret==0:
-        try:
-            print 'a'
-            #os.remove(script_path)
-            #os.remove(script_path.replace('.txt','.zsc'))
-        except:
-            print 'no zscript temp file'
     return ret
 
 def zbrush_gui():
@@ -135,25 +180,35 @@ def zbrush_open(name):
     
     env = os.getenv(SHARED_DIR_ENV.replace('$',''))
 
-    #zbrush script to iterate through sub tools and open matches, appends new tools
+    #zbrush script to iterate through sub tools,
+    #and open matches, appends new tools
+
     zscript = """
             [RoutineDef, open_file,
             [FileNameSetNext,"!:#FILENAME"]
             [VarSet,in_tool,#TOOLNAME]
             [VarSet,imp,0]
             [Loop, [SubToolGetCount],
+            [FileNameSetNext,"!:#FILENAME"]
             [VarSet, a, a+1]
             [SubToolSelect,a-1]
-            [VarSet, sub, [FileNameExtract,[GetActiveToolPath],2]]
-            [If, [StrFind, in_tool, sub]>-1,
+            //[VarSet, sub, [FileNameExtract,[GetActiveToolPath],2]]
+
+            [VarSet,SubToolTitle,[IgetTitle, Tool:Current Tool]]
+            [VarSet,sub, [FileNameExtract, SubToolTitle, 2]]
+
+
+            [If,([StrLength,in_tool]==[StrLength,sub])&&([StrFind,sub,in_tool]>-1),
                 [IPress,Tool:Import]
                 [VarSet,imp,1],]
+                //[LoopExit]
             ]
             [If, imp<1,
                     [If, a==[SubToolGetCount],
                         [IPress,Tool:SubTool:Duplicate]
                         [IPress,Tool:SubTool:MoveDown]
                         [IPress,Tool:Geometry:Del Higher]
+                        [FileNameSetNext,"!:#FILENAME"]
                         [IPress,Tool:Import]
                         [ToolSetPath,[SubToolGetCount],"!:#FILENAME"]
                         , [MessageOk, False]
@@ -168,61 +223,32 @@ def zbrush_open(name):
     zs_temp.write(zscript)
     return zs_temp.name
 
-def listen():
-    """waits for file open commands from maya, iterates obj list """
-    host = socket.gethostbyname(socket.getfqdn())
-    port = 6668
-
-    print 'listening on: '+str(host)+':'+str(port)
-
-    # FIXME: can this even work from a host other than localhost?
-    znet = os.getenv('ZNET')
-
-    if znet is not None:
-        print 'listening on: '+str(znet)
-        host, port = znet.split(':')
-
-    # FIXME: pass these are args from __main__
-    if len(sys.argv)==2:
-        args = (sys.argv)[1]
-        print 'listening on: '+str(args)
-        host = args.split(':')[0]
-        port = int(args.split(':')[1])
-
-
-    soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # FIXME: why are we sleeping here?
-    time.sleep(2)
-    soc.bind((host, port))
-    soc.listen(1)
-    conn, addr = soc.accept()
-
-    while 1:
-        try:
-            data = conn.recv(1024)
-        except:
-            print "err"
-            break
-        if not data:
-            break
-        if data.split('|')[0] == 'open':
-            objs = data.split('|')[1].split(':')
-            for obj in objs:
-                print 'got: '+obj
-                zs_temp = zbrush_open(obj+'.ma')
-                send_osa(zs_temp)
-
-    conn.close()
-    print "loaded all objs"
-
 if __name__ == "__main__":
     zbrush_ui_script = zbrush_gui()
     err_code = send_osa(zbrush_ui_script)
+
     while err_code != 0:
         err_code = send_osa(zbrush_ui_script)
     print "GUI Installed" if not err_code else 0
-    print 'Sever Started!'
-    while 1:
-        # FIXME: how often are we reconnecting?  shouldn't we just connect once and keep it alive until the process is killed?
-        # maybe look into SocketServer module
-        listen()
+
+
+    host = socket.gethostbyname(socket.getfqdn())
+    port = 6668
+
+    try:
+        server = ZBrushServer((host,port),ZBrushHandler)
+        server.allow_reuse_address=True
+    except socket.error, e:
+        import errno
+        print e
+        if '[Errno 48]' in str(e):
+            print 'please wait a few seconds before relaunching'
+        else:
+            print 'unhandled exception!'
+    else:
+        try:
+            print 'Sever started!'
+            server.serve_forever()
+        except KeyboardInterrupt:
+            server.shutdown()
+            print "Server shutting down!"
