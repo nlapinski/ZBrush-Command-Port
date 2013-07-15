@@ -189,18 +189,26 @@ def zbrush_open(name):
             [VarSet,in_tool,#TOOLNAME]
             [VarSet,imp,0]
             [Loop, [SubToolGetCount],
+            [FileNameSetNext,"!:#FILENAME"]
             [VarSet, a, a+1]
             [SubToolSelect,a-1]
-            [VarSet, sub, [FileNameExtract,[GetActiveToolPath],2]]
-            [If, [StrFind, in_tool, sub]>-1,
+            //[VarSet, sub, [FileNameExtract,[GetActiveToolPath],2]]
+
+            [VarSet,SubToolTitle,[IgetTitle, Tool:Current Tool]]
+            [VarSet,sub, [FileNameExtract, SubToolTitle, 2]]
+
+
+            [If,([StrLength,in_tool]==[StrLength,sub])&&([StrFind,sub,in_tool]>-1),
                 [IPress,Tool:Import]
                 [VarSet,imp,1],]
+                //[LoopExit]
             ]
             [If, imp<1,
                     [If, a==[SubToolGetCount],
                         [IPress,Tool:SubTool:Duplicate]
                         [IPress,Tool:SubTool:MoveDown]
                         [IPress,Tool:Geometry:Del Higher]
+                        [FileNameSetNext,"!:#FILENAME"]
                         [IPress,Tool:Import]
                         [ToolSetPath,[SubToolGetCount],"!:#FILENAME"]
                         , [MessageOk, False]
