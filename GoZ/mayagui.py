@@ -5,7 +5,7 @@ from pymel.core import text
 from pymel.core import textField
 from pymel.core import separator
 from pymel.core import deleteUI
-#from pymel.core import confirmDialog
+from pymel.core import confirmDialog
 import maya_tools
 
 class Win(object):
@@ -45,8 +45,31 @@ class Win(object):
     def send(self,*args):
         self.client.host = self.user_zbrush_ip.getText()
         self.client.port = self.user_zbrush_port.getText()
+
+        self.client.parse_objs()
+        goz_result = self.client.goz_check()
+        for obj in goz_result:
+               print obj
+               #clean this up
+               self.client.goz_id = obj[1]
+               self.client.goz_obj = obj[0]
+               self.rename_gui()
         self.client.send()
         print 'send'
+
+
+    def rename_gui(self):
+        """ simple gui for confirming object rename"""
+        c = confirmDialog(title="ZBrush Name Conflict",
+                message="%s has a old ZBrush ID, of %s, try to relink?" % (self.client.goz_obj,self.client.goz_id),
+                button=['Relink','Create'])
+        if 'Relink' in c:
+            self.client.relink()
+            self.client.parse_objs()
+        if 'Create' in c:
+            self.client.create()
+            self.client.parse_objs()
+            print 'time make a new one'
 
     def listen(self,*args):
 

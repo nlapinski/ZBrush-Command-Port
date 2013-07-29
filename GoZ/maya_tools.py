@@ -123,7 +123,6 @@ class ZBrushClient(object):
         self.export()
         self.sock.send('open|' + ':'.join(self.objs))
         self.load_confirm()
-        pass
 
     def load_confirm(self):
         if self.sock.recv(1024)=='loaded':
@@ -131,12 +130,8 @@ class ZBrushClient(object):
             print ('\n'.join(self.objs))
 
     def export(self):
-        
-        self.objs = cmds.ls(selection=True,type='mesh',dag=True)
-
-        if self.objs:
-            self.parse_objs()
-
+       
+        print self.objs
         
         for obj in self.objs:
             
@@ -153,19 +148,20 @@ class ZBrushClient(object):
 
     def parse_objs(self):
 
-        cmds.select(cl=True)
-        cmds.select(self.objs)
-        cmds.pickWalk(direction='up')
-        self.objs = cmds.ls(selection=True)
-        cmds.select(self.objs)
-        cmds.makeIdentity(apply=True, t=1, r=1, s=1, n=0)
-
-        self.goz_check()
-
-        pass
+        self.objs = cmds.ls(selection=True,type='mesh',dag=True)
+        if self.objs:
+                cmds.select(cl=True)
+                cmds.select(self.objs)
+                cmds.pickWalk(direction='up')
+                self.objs = cmds.ls(selection=True)
+                cmds.select(self.objs)
+                cmds.makeIdentity(apply=True, t=1, r=1, s=1, n=0)
 
     def goz_check(self):
 
+        #clean up this function
+
+        goz_list=[]
 
         for obj in self.objs:
             
@@ -174,7 +170,10 @@ class ZBrushClient(object):
             if goz_check:
                 goz_id=cmds.getAttr(obj+'.GoZBrushID')
                 if obj!=goz_id:
+                    self.goz_obj = obj
+                    self.goz_id = goz_id
                     print obj, goz_id,'name mismatch'
+                    goz_list.append((obj,goz_id))
             else:
                 history=cmds.listHistory(obj)
                 for old_obj in history:
@@ -184,12 +183,16 @@ class ZBrushClient(object):
                     if goz_check:
                         goz_id=cmds.getAttr(old_obj+'.GoZBrushID')
                         if obj!=goz_id:
-                            print 'rename'
-        pass
+                            print obj, goz_id,'name mismatch'
+                            self.goz_obj = obj
+                            self.goz_id = goz_id
+                            goz_list.append((obj,goz_id))
+
+        return set(goz_list)
 
 
     def relink(self):
-        obj=self.obj
+        obj=self.goz_obj
         goz_id=self.goz_id
         pre_sel=cmds.ls(sl=True)
         cmds.delete(obj,ch=True)
@@ -208,7 +211,7 @@ class ZBrushClient(object):
         cmds.select(pre_sel)
 
     def create(self):
-        obj=self.obj
+        obj=self.goz_obj
         
         pre_sel=cmds.ls(sl=True)
         cmds.delete(obj,ch=True)
