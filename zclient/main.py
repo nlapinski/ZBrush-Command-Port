@@ -243,13 +243,13 @@ def send_to_zbrush(sock):
     
     if objs:
 
-        cmds.select(cl=True)
+        cmds.select(cl=true)
         cmds.select(objs)
-        cmds.pickWalk(direction='up')
-        objs = cmds.ls(selection=True)
+        cmds.pickwalk(direction='up')
+        objs = cmds.ls(selection=true)
         cmds.select(objs)
-        cmds.makeIdentity(apply=True, t=1, r=1, s=1, n=0)
-        #cmds.delete(ch=True)
+        cmds.makeidentity(apply=true, t=1, r=1, s=1, n=0)
+        #cmds.delete(ch=true)
 
         for obj in objs:
             

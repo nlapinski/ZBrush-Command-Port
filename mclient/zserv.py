@@ -239,7 +239,7 @@ if __name__ == "__main__":
     print "GUI Installed" if not err_code else 0
 
 
-    znet = os.environ.get('ZNET')
+    znet = os.environ.get('ZNETa')
     
     if znet:
         host, port = znet.split(':')
