@@ -8,58 +8,33 @@ Connect Maya with ZBrush via Python
 Install
 =======
 
-zclient
--------
+- Download a copy of the repo, place in your site packages  
+- Alternativly sym link it to your site-packages folders   
+- Currently this only is tested on OSX/Linux   
 
-client for sending files to zbrush from maya, includes a gui for setup.
-place in your/maya/install/site-packages/zclient
+	```bash
+	ln -s /Users/name/GoZ/ /your/python/site-packages/GoZ
+        ln -s /USers/name/GoZ/ /maya/default/site-packages/GoZ
+	```
+- Create a shelf button in Maya simmilar to:  
 
-create a shelf button in maya with:
-```python
-import zclient
-mainwindow=zclient.gui.win()
-```
-this is for the setup GUI
+	```python
+	import GoZ.mayagui    
+        mayagui=GoZ.mayagui.Win()
+	```
 
-create another shelf button with:
-```python
-mainwindow.execute_shelf()
-```
-this button is for sending to zbrush, after the GUI is setup with IP info
+- Start ZBrushServer config with: 
 
-
-zserv
------
-
-python module to receive files from maya and load in zbrush.
-
-copy mclient to `/your/python/install/site-packages/`
-zserv will launch zbrush when loaded, probably better to start ZBrush first.
-zserv also places a GUI in zbrush for sending to maya.
-
-host:port can be passed as commandline arguments:
-```bash
-python -m mclient.zserv 10.10.0.10:6668
-```
-
-mclient
--------
-
-client for sending files to maya from zbrush,
-this is triggered by 2 ui buttons in ZBrush
-
-```bash
-python -m mclient.zbrush_export file_name tool#
-```
+	```python
+	/usr/bin/python -m GoZ.go
+	```
 
 General Setup
 =============
 
 - Create a folder ZBrush and Maya have acess to (network drive)
-- set up some enviromental variables on each machine:
+- set up the shared  enviromental variable on each machine:
 
 	```bash
 	export ZDOCS = /path/to/goz_default
-	export MNET your.maya.ip:port
-	export ZNET your.zbrush.up:port
 	```
