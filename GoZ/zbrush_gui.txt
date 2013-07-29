@@ -1,0 +1,55 @@
+
+        [RoutineDef, send_file,
+            [VarSet, env_path, "!:/Volumes/public/goz_default/"]
+            [VarSet, name, [FileNameExtract, [GetActiveToolPath], 2]]
+            [VarSet, name, [StrMerge,name,".ma"]]
+            [IPress, Tool:SubTool:All Low]
+            [VarSet, path, "/usr/bin/python -m mclient.zbrush_export "]
+            [VarSet, q, [SubToolGetActiveIndex]]
+            [VarSet, export_path, [StrMerge,env_path,name_ma] ]
+            [VarSet, lock_name,[FileNameExtract, [GetActiveToolPath], 2]]
+            [FileNameSetNext, #export_path,"ZSTARTUP_ExportTamplates\Maya.ma"]
+            [IPress,Tool:Export]
+            [ShellExecute,
+                [StrMerge, #path, 
+                    [StrMerge,
+                        [StrMerge, #lock_name, " "],#q
+                    ]
+                ]
+            ]
+        ]
+
+        [IButton, "TOOL:Send to Maya", "Export model as a *.ma to maya",
+            [RoutineCall, send_file]
+        ]
+
+        
+        [RoutineDef, send_all,
+            [VarSet,t,0]
+            [SubToolSelect,0]
+            [Loop,[SubToolGetCount],
+                [VarSet,t,t+1]
+                [SubToolSelect,t-1]
+                [VarSet, env_path, "!:/Volumes/public/goz_default/"]
+                [VarSet, name, [FileNameExtract, [GetActiveToolPath], 2]]
+                [VarSet, name, [StrMerge,name,".ma"]]
+                [IPress, Tool:SubTool:All Low]
+                [VarSet, path, "/usr/bin/python -m mclient.zbrush_export "]
+                [VarSet, q, [SubToolGetActiveIndex]]
+                [VarSet, export_path, [StrMerge,env_path,name_ma] ]
+                [VarSet, lock_name,[FileNameExtract, [GetActiveToolPath], 2]]
+                [FileNameSetNext, #export_path,"ZSTARTUP_ExportTamplates\Maya.ma"]
+                [IPress,Tool:Export]
+                [ShellExecute,
+                    [StrMerge, #path, 
+                        [StrMerge,
+                            [StrMerge, #lock_name, " "],#t
+                        ]
+                    ]
+                ]
+            ]       
+        ]
+        [IButton, "TOOL:Send to Maya -all", "Export model as a *.ma to maya",
+            [RoutineCall, send_all]
+        ]
+        
