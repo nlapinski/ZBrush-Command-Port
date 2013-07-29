@@ -25,19 +25,16 @@ def send_to_maya(file):
     file_path = os.path.join(SHARED_DIR_ENV, file + '.ma')
 
     print file_path
-    mayaCMD = 'import __main__'
+    mayaCMD = 'import zclient'
     mayaCMD += '\n'
-    #mayaCMD += 'zclient.main.get_from_zbrush("'+file_path+'")'
-    mayaCMD += '__main__.mayagui.serv.load("'+file_path+'")'
-    #mayaCMD += 'mayagui.serv.load("'+file_path+'")'
-
-    print mayaCMD
+    mayaCMD += 'zclient.main.get_from_zbrush("'+file_path+'")'
+    
     maya = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # defaults to local if not set
 
 
-    mnet = os.environ.get('MNETa')
+    mnet = os.environ.get('MNET')
     
     if mnet:
         host, port = mnet.split(':')
@@ -50,8 +47,6 @@ def send_to_maya(file):
     maya.send(mayaCMD)
     maya.close()
 
-    return 'DONE'
-
 if __name__ == "__main__":
 
     """send to maya/save from zbrush
@@ -62,6 +57,6 @@ if __name__ == "__main__":
     """
 
     file = (sys.argv)[1]
+    tool = (sys.argv)[2]
     
-    ret = send_to_maya(file)
-    print ret
+    send_to_maya(file)
