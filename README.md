@@ -29,9 +29,6 @@ Install
 	/usr/bin/python -m GoZ.go
 	```
 
-General Setup
-=============
-
 - Create a folder ZBrush and Maya have acess to (network drive)
 - set up the shared  enviromental variable on each machine:
 
