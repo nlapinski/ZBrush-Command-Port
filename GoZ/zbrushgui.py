@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import zbrush_tools
 import Tkinter
 

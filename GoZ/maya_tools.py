@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import utils
 import maya.cmds as cmds
 class MayaServer(object):
@@ -10,9 +8,8 @@ class MayaServer(object):
     
     attributes:
         self.status                    -- current server status (up/down)
-        self.host                      -- current host for serving on from utils.getenvs
-        self.port                      -- current port for serving on from utils.getenvs
-        self.shared_dir                -- shared ZBrush/Maya directory from utils.getenvs
+        self.host                      -- current host for serving on from utils.get_net_info
+        self.port                      -- current port for serving on from utils.get_net_info
         self.cmdport_name              -- formated command port name
         self.file_path                 -- current file being loaded from ZBrush (full path)
         self.file_name                 -- current file being loaded from ZBrush (name only no ext)
@@ -27,11 +24,12 @@ class MayaServer(object):
     """
 
     def __init__(self):
-        self.host,self.port,self.shared_dir = utils.getenvs(maya=True,serv=True,shared_dir=True)
+        self.host,self.port = utils.get_net_info('MNET')
 
         self.cmdport_name = "%s:%s" % (self.host,self.port)
-        self.status=utils.DOWN
+        self.status=False
 
+        #nodes marked for removal from maya on import from ZBrush
         self.nodes = [  'blinn',
                         'blinnSG',
                         'materialInfo',
@@ -40,16 +38,24 @@ class MayaServer(object):
 
     def start(self):
 
-        utils.writecfg(self.host,self.port,'MNET')
+        #check network info
+        utils.validate_host(self.host)
+        utils.validate_port(self.port)
 
+        #write network info back to config file
+        utils.writecfg(self.host,self.port,'MNET') 
+
+        self.cmdport_name = "%s:%s" % (self.host,self.port) 
         self.status = cmds.commandPort(self.cmdport_name,query=True)
 
+        #if down, start a new command port
         if self.status is False:
-            cmds.commandPort(name=self.cmdport_name ,sourceType='python')
+            cmds.commandPort(name=self.cmdport_name, sourceType='python')            
             self.status = cmds.commandPort(self.cmdport_name,query=True)
-            print 'listening %s' % self.cmdport_name
+        print 'listening %s' % self.cmdport_name
 
     def stop(self):
+        #stop command port
         cmds.commandPort(name=self.cmdport_name,
                 sourceType='python',close=True)
         self.status = cmds.commandPort(self.cmdport_name,
@@ -57,6 +63,9 @@ class MayaServer(object):
         print 'closing %s' % self.cmdport_name
 
     def load(self,file_path):
+        #get file name from file path
+        #remove matching nodes
+        #import file
         self.file_name = utils.split_file_name(file_path)
         self.file_path  = file_path
         self.cleanup()
@@ -83,13 +92,12 @@ class ZBrushClient(object):
         self.status      -- status of the connection to ZBrushServer
         self.ascii_path  -- current ascii file export path
         self.objs        -- list of objects to send to ZBrushServer
-        self.host        -- current host obtained from utils.getenvs
-        self.port        -- current port obtained from utils.getenvs
+        self.host        -- current host obtained from utils.get_net_info
+        self.port        -- current port obtained from utils.get_net_info
         self.sock        -- current open socket connection
 
     methods:
         connect()        -- connects to ZBrushServer
-        hangup()         -- closes connection to ZBrushServer
         send()           -- send a file load command to ZBrush via ZBrushServer
         export()         -- exports selected meshes and checks for previous GoZBrushIDs
         relink()         -- relinks the current export mesh name to a prior GoZBrushID
@@ -97,40 +105,93 @@ class ZBrushClient(object):
         parse_objs()     -- evalutes a list of objects for export, removes non-mesh dag types
         goz_check()      -- checks object history for instances of GoZBrushID
         load_confirm()   -- checks with ZBrushServer to make sure objects are loaded after a send
+        check_socket     -- poll ZBrushServer, execute before sending to look for issues
 
     """
     def __init__(self):
-        self.host,self.port,self.shared_dir = utils.getenvs(zbrush=True,shared_dir=True)
-        self.status=utils.DOWN
-        self.sock = utils.socket.socket(utils.socket.AF_INET,utils.socket.SOCK_STREAM)
 
-    def connect(self):
-        if self.status is utils.DOWN:
-            #self.sock.settimeout(2.8)
-            self.sock.connect((self.host, int(self.port)))
-            self.status = utils.UP
+        #setup host/port, set server to 'down', create a port and try to connect
+        self.host,self.port = utils.get_net_info('ZNET')
+        self.status = False
+        self.sock = None
     
-    def hangup(self):
-        self.sock.close()
-        pass
+    def connect(self):
+        
+        #simplify this
+
+        if self.sock is None:
+            self.sock = utils.socket.socket(utils.socket.AF_INET,utils.socket.SOCK_STREAM)
+            #time out incase of a bad host/port that actually exists
+            self.sock.settimeout(3)
+        if self.status is False:
+            try:
+                self.sock.connect((self.host, int(self.port)))
+            except utils.socket.error,e:
+                if utils.errno.ECONNREFUSED in e: 
+                    raise utils.errs.ZBrushServerError('Connection Refused: %s:%s'%(self.host,self.port))
+            self.status = True
+   
+    def check_socket(self):
+
+        #verify connection to zbrush
+
+        try:
+            self.sock.send('check')
+            if self.sock.recv(1024) == 'ok':
+                #connected
+                print 'connected!'
+            else:
+                #bad connection, clear socket
+                self.status=False
+                self.sock.close()
+                self.sock=None
+                print 'conn reset!'
+
+        except utils.socket.error,e:
+            #catches server down errors, resets socket
+            self.status = False
+            self.sock.close()
+            self.sock = None
+            if utils.errno.ECONNREFUSED in e:
+                #server probbly down
+                raise utils.errs.ZBrushServerError('Connection Refused: %s:%s'%(self.host,self.port))
+            if utils.errno.EADDRINUSE in e:
+                #this is fine
+                print 'already connected...'
+            if utils.errno.EPIPE in e:
+                #server down, or unexpected connection interuption
+                print 'broken pipe, trying to reconnect'
     
     def send(self):
 
-        print self.host,self.port
+        utils.validate_host(self.host)
+        utils.validate_port(self.port)
         
+        #place new network settings back in ENVs and cfg file
         utils.writecfg(self.host,self.port,'ZNET')
-        self.connect()
-        self.export()
-        self.sock.send('open|' + ':'.join(self.objs))
-        self.load_confirm()
+   
+        #poll ZBrushServer
+        self.check_socket()
+        #export, send
+        if self.sock is not None:
+                self.export()
+                self.sock.send('open|' + ':'.join(self.objs))
+                #check receipt of objs
+                self.load_confirm()
 
     def load_confirm(self):
         if self.sock.recv(1024)=='loaded':
-            print 'zbrush loaded:'
+            print 'ZBrush Loaded:'
             print ('\n'.join(self.objs))
+        else:
+            self.status = False
+            self.sock = None
+            print 'ZBrushServer is down!'
+
 
     def export(self):
-       
+      
+        #save some files
         print self.objs
         
         for obj in self.objs:
@@ -148,6 +209,7 @@ class ZBrushClient(object):
 
     def parse_objs(self):
 
+        #grab meshes from selection, needs some revision
         self.objs = cmds.ls(selection=True,type='mesh',dag=True)
         if self.objs:
                 cmds.select(cl=True)
@@ -156,10 +218,13 @@ class ZBrushClient(object):
                 self.objs = cmds.ls(selection=True)
                 cmds.select(self.objs)
                 cmds.makeIdentity(apply=True, t=1, r=1, s=1, n=0)
+                return True
+        else:
+                return False
 
     def goz_check(self):
 
-        #clean up this function
+        #clean up this function, watch for merging 2obs with unique GoZBruhsIDs
 
         goz_list=[]
 
@@ -192,6 +257,8 @@ class ZBrushClient(object):
 
 
     def relink(self):
+
+        #revise
         obj=self.goz_obj
         goz_id=self.goz_id
         pre_sel=cmds.ls(sl=True)
@@ -211,14 +278,16 @@ class ZBrushClient(object):
         cmds.select(pre_sel)
 
     def create(self):
-        obj=self.goz_obj
-        
+
+        #revise
+        obj=self.goz_obj 
         pre_sel=cmds.ls(sl=True)
         cmds.delete(obj,ch=True)
         cmds.select(cl=True)
         cmds.select(obj)
         shape=cmds.pickWalk(direction='down')[0]
         goz_check=cmds.attributeQuery('GoZBrushID',node=shape,exists=True)
+        
         if goz_check:
             cmds.setAttr(shape+'.GoZBrushID',obj,type='string')
         cmds.select(pre_sel)

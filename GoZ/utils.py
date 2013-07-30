@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import os
 import socket
 import errs
@@ -6,65 +5,98 @@ from contextlib import contextmanager
 import sys
 from threading import Thread
 import ConfigParser
+import errno
 
 SHARED_DIR_ENV = 'ZDOCS'
-UP = True
-DOWN = False
-
+DEFAULT_NET = {'MNET':'127.0.0.1:6667','ZNET':'127.0.0.1:6668'}
+CFG = 'defaults.cfg'
 
 """
-Utility class for managing validation and enviromental variables
+Utilities for managing validation and enviromental variables
 
 constants:
-    SHARED_DIR_ENV  --
-    MNET            --
-    ZNET            --
-    UP              --
-    DOWN            --
+    SHARED_DIR_ENV  -- ZDOCS default file path, /some/path/goz_default
+    DEFAULT_NET     -- Contains fallbacks for host/port (local)
+    CFG             -- python config file with host/port info
 
 methods:
-    validate        --
-    getenvs         --
-    split_file_name --
-    make_file_name  --
-    err_handler     --
+    validate        -- validates host and port
+    validate_host   -- validates a host
+    validate_port   -- validates a port
+    getenvs         -- returns enviromenal variables
+    split_file_name -- returns a object name from full file path 
+    make_file_name  -- constructs a file path, with ENVs
+    err_handler     -- general error handler, takes a gui/logger function
+    get_net_info    -- takes a eniromental varaible to look for, returns host/port
+    read_cfg        -- looks in defaults.cfg for host/port info
 
 """
 
 @contextmanager
-def err_handler():
+def err_handler(gui):
+   
+    #trys to catch most GoZ errors
+    #raises a gui/logger on error
     
     try:
         yield
-    except errs.GoZError, e:
+    except  (errs.PortError,
+             errs.IpError,
+             errs.SelectionError,
+             errs.InUseError,
+             errs.ZBrushServerError), e:
         print e.msg
+        gui(e.msg)
     except Exception,e:
         print e
-        raise e
+        gui(e)
     finally:
         pass
 
-def validate_port(port):
-
+def validate_port(port): 
+    #checks port is valid,or raises an error
     try:
         port = int(port)
     except ValueError:
-        raise errs.PortError(port,'Please specify a valid port')
+        raise errs.PortError(port,'Please specify a valid port: %s'%(port))
 
 def validate_host(host):
-
+    #pings host, also trys to resolve hostname if a computer name is used
     route = os.system("ping -t 2 -c 1 "+host)
 
     if route != 0:
-        raise errs.IpError(host,'Please specify a valid host')
+        raise errs.IpError(host,'Please specify a valid host: %s'%(host))
 
     try:
         host = socket.gethostbyname(host)
         socket.inet_aton(host)
     except socket.error:
-        raise errs.IpError(host,'Please specify a valid host')
+        raise errs.IpError(host,'Please specify a valid host: %s'%(host))
+
+
+def validate(net_string):
+    #runs host/port validation on a string in xx.xx.xx.xx:xxxx format (host:port)
+    host, port = net_string.split(':')
+    validate_host(host)
+    validate_port(port)
+    return (host,port)
+
+def read_cfg(net_env):
+    #read defaults.cfg and try to return the host/port
+    cfg_path = os.path.dirname(os.path.abspath(__file__))
+    cfg_path = os.path.join(cfg_path,CFG)
+    config = ConfigParser.ConfigParser()
+    config.read(cfg_path)
+    try:
+        return config.get('GoZ',net_env)
+    except ConfigParser.NoSectionError:
+        return
 
 def writecfg(host,port,key):
+    #stores any changes in the GUI to defaults.cfg
+    #also stores cahnges in env vars (current process)
+    
+    os.environ[key] = '%s:%s'%(host,port)
 
     cfg_path = os.path.dirname(os.path.abspath(__file__))
     cfg_path = os.path.join(cfg_path,'defaults.cfg')
@@ -77,82 +109,46 @@ def writecfg(host,port,key):
     with open(cfg_path, 'wb') as configfile:
         config.write(configfile)
 
-    pass
+def get_net_info(net_env):
 
-def getenvs(**kwargs):
+    #check for enviromental variabels, places them in defaults.cfg
+    #default back to config file
+    #finally default network info (local)
+    # net_env is MNET or ZNET
 
+    #a check should be added to verify if a host/port can be served on
 
-    cfg_path = os.path.dirname(os.path.abspath(__file__))
-    cfg_path = os.path.join(cfg_path,'defaults.cfg')
-    
-    config = ConfigParser.ConfigParser()
-    config.read(cfg_path)
+    #check env vars (MNET/ZNET), write to cfg
+    #cfg might be removed, it is useful if env vars are not set globally
 
-    mnet = config.get('GoZ','MNET')
-    znet = config.get('GoZ','ZNET')
+    net_string = os.environ.get(net_env)
 
-    env_list = []
+    if net_string:
+        host,port = validate(net_string)
+        writecfg(host,port,net_env)
 
-    if 'maya' in kwargs:
-        mhost,mport = mnet.split(':')
-        try:
-                validate_host(mhost)
-        except errs.IpError:
-                mhost = socket.gethostbyname(socket.getfqdn())
-        try:
-                validate_port(mport)
-        except errs.PortError:
-                mport = 6667
+    #env vars failed defaults to defaults.cfg 
+    net_string = read_cfg(net_env)
 
-        if 'serv' in kwargs:
-            sock = socket.socket()
-            try:
-                   sock.bind((mhost,int(mport)))
-                   sock.close()
-            except socket.error,e:
+    if net_string:
+        print net_string
+        return validate(net_string)
 
-                   print e
-                   mhost = socket.gethostbyname(socket.getfqdn())
+    #finally default to local mode
+    net_string = DEFAULT_NET[net_env]
 
-        env_list.append(mhost)
-        env_list.append(mport)
-
-    if 'zbrush' in kwargs:
-        zhost,zport = znet.split(':')
-        
-        try:
-            validate_host(zhost)
-        except errs.IpError:
-            zhost = socket.gethostbyname(socket.getfqdn())
-        try:
-            validate_port(zport)
-        except errs.PortError:
-            zport = 6668
-        if 'serv' in kwargs:
-               sock = socket.socket()
-               try:
-                   sock.bind((zhost,int(zport)))
-                   sock.close()
-               except socket.error,e:
-                   print e
-                   zhost = socket.gethostbyname(socket.getfqdn())
-
-        env_list.append(zhost)
-        env_list.append(zport)
-
-    if 'shared_dir' in kwargs:
-        env_list.append(SHARED_DIR_ENV)
-
-    return env_list
+    if net_string:
+        return validate(net_string)
 
 def split_file_name(file_path):
-
+    # recoves 'name' from file, strips ext and dir
     file_name=os.path.splitext(file_path)[0]
     file_name=os.path.split(file_name)[1]
 
     return file_name
 
 def make_file_name(name):
+    #makes a full resolved file path for zbrush
     name = os.path.relpath(name + '.ma')
     env_path = os.path.join('$'+SHARED_DIR_ENV, name)
     expanded_path = os.path.expandvars(env_path)
@@ -160,6 +156,7 @@ def make_file_name(name):
 
 
 def send_osa(script_path):
+    #sends a zscript file for zbrush to open
     cmd = ['osascript -e',
             '\'tell app "ZBrush"',
              'to open',
@@ -168,4 +165,3 @@ def send_osa(script_path):
     cmd = ' '.join(cmd)
     print cmd 
     os.system(cmd)
-    #return ret

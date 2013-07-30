@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 class GoZError(Exception):
 
     """
@@ -38,6 +36,18 @@ class IpError(Exception):
 
     def __init__(self,ip,msg):
         self.ip=ip
+        self.msg=msg
+
+class ZBrushServerError(Exception):
+    """
+    Exception raised for connection failure
+
+    Attribitues
+        msg -- gui message
+
+    """
+
+    def __init__(self,msg):
         self.msg=msg
 
 class PortError(Exception):

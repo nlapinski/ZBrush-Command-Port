@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import SocketServer
 import utils
 
@@ -11,9 +9,8 @@ class ZBrushServer(object):
     
     attributes:
         self.status                    -- current server status (up/down)
-        self.host                      -- current host for serving on from utils.getenvs
-        self.port                      -- current port for serving on from utils.getenvs
-        self.shared_dir                -- shared ZBrush/Maya directory from utils.getenvs
+        self.host                      -- current host for serving on from utils.get_net_info
+        self.port                      -- current port for serving on from utils.get_net_info
         self.cmdport_name              -- formated command port name
 
     methods:
@@ -28,7 +25,7 @@ class ZBrushServer(object):
 
     def __init__(self):
 
-        self.host,self.port,self.shared_dir = utils.getenvs(zbrush=True,serv=True,shared_dir=True)
+        self.host,self.port = utils.get_net_info('ZNET')
    
     def start(self):
 
@@ -76,28 +73,28 @@ class ZBrushServer(object):
 
 
         def handle(self):
+            #keep handle open until client/server close
             while 1:
-                try:
-
-                    self.data = self.request.recv(1024).strip()
-                    if not self.data:
-                        self.request.close()
-                        break
-                    print '\n\n'
-                    print '{} sent:'.format(self.client_address[0])
-                    print self.data
-
-                    if self.data.split('|')[0] == 'open':
-                        objs = self.data.split('|')[1].split(':')
-                        for obj in objs:
-                            print 'got: '+obj
-                            zs_temp = self.zbrush_open(obj+'.ma')
-                            utils.send_osa(zs_temp)
-                        print 'loaded all objs!'
-                        self.request.send('loaded')
-                except KeyboardInterrupt:
+                self.data = self.request.recv(1024).strip()
+                if not self.data:
                     self.request.close()
                     break
+                print '\n\n'
+                print '{} sent:'.format(self.client_address[0])
+                print self.data
+                #check for conn-reset/disconnect by peer (on client)
+                if self.data == 'check':
+                    self.request.send('ok')
+
+                #parse object list from maya
+                if self.data.split('|')[0] == 'open':
+                    objs = self.data.split('|')[1].split(':')
+                    for obj in objs:
+                        print 'got: '+obj
+                        zs_temp = self.zbrush_open(obj+'.ma')
+                        utils.send_osa(zs_temp)
+                    print 'loaded all objs!'
+                    self.request.send('loaded')
 
         def zbrush_open(self,name):
 
@@ -114,9 +111,7 @@ class ZBrushServer(object):
             zs_temp = open(script_path,'w+')
 
 
-            # this should be inherited - didnt see a straight forward way to do it
-            self.shared_dir = utils.getenvs(shared_dir=True)[0]
-            env = utils.os.getenv(self.shared_dir.replace('$',''))
+            env = utils.os.getenv(utils.SHARED_DIR_ENV)
             print env
 
             #zbrush script to iterate through sub tools,
@@ -166,7 +161,7 @@ class ZBrushServer(object):
 class MayaClient(object):
 
     def __init__(self):
-        self.host,self.port,self.shared_dir = utils.getenvs(maya=True,shared_dir=True) 
+        self.host,self.port = utils.get_net_info('MNET') 
 
     def zscript_ui(self):
 
@@ -232,7 +227,7 @@ class MayaClient(object):
         ]
         """
 
-        env = utils.os.getenv(self.shared_dir.replace('$',''))
+        env = utils.os.getenv(utils.SHARED_DIR_ENV)
         print env
 
         zscript=zscript.replace('#ENVPATH',env)
@@ -243,7 +238,9 @@ class MayaClient(object):
         utils.send_osa(script_path)
 
     def test_client(self):
-        
+       
+        #tests connection with maya, creates a sphere and deletes it
+ 
         utils.writecfg(self.host,self.port,'MNET')
 
         mayaCMD = 'import maya.cmds as cmds'
@@ -252,6 +249,7 @@ class MayaClient(object):
         mayaCMD += '\n'
         mayaCMD += 'cmds.delete("test")'
         maya = utils.socket.socket(utils.socket.AF_INET, utils.socket.SOCK_STREAM)
+
         try:
             maya.connect((self.host, int(self.port)))
         except utils.socket.error,e:
@@ -266,18 +264,16 @@ class MayaClient(object):
     @staticmethod
     def send():
 
-        shared_dir = '$'+utils.getenvs(shared_dir=True)
-
-        file = (utils.sys.argv)[1]
-        file_path = utils.os.path.join(shared_dir, file + '.ma')
+        #construct file read path for maya, uses SHARED_DIR_ENV
+        name = (utils.sys.argv)[1]
+        file_path = utils.make_file_name(name)
 
         mayaCMD = 'import __main__'
         mayaCMD += '\n'
         mayaCMD += '__main__.mayagui.serv.load("'+file_path+'")'
 
-        maya = utils.socket.socket(utils.socket.AF_INET, utils.socket.SOCK_STREAM)
- 
-        host,port = utils.getenvs(maya=True) 
+        maya = utils.socket.socket(utils.socket.AF_INET, utils.socket.SOCK_STREAM) 
+        host,port = utils.get_net_info('MNET')
 
         maya.connect((host, int(port)))
         maya.send(mayaCMD)
