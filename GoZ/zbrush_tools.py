@@ -1,7 +1,7 @@
 """ starts ZBrushSever, manages MayaClient"""
 
 import SocketServer
-from . import utils
+from GoZ import utils as utils
 
 
 class ZBrushServer(object):
