@@ -1,12 +1,15 @@
+""" starts ZBrushSever, manages MayaClient"""
+
 import SocketServer
-import utils
+from . import utils
+
 
 class ZBrushServer(object):
 
     """
-    
+
     ZBrush server extending SocketServer module, gets meshes from maya
-    
+
     attributes:
         self.status                    -- current server status (up/down)
         self.host                      -- current host for serving on from utils.get_net_info
@@ -14,7 +17,7 @@ class ZBrushServer(object):
         self.cmdport_name              -- formated command port name
 
     methods:
-        start()              -- start the server 
+        start()              -- start the server
         stop()               -- stop the server
 
     class:
@@ -25,79 +28,84 @@ class ZBrushServer(object):
 
     def __init__(self):
 
-        self.host,self.port = utils.get_net_info('ZNET')
-   
-    def start(self):
+        self.host, self.port = utils.get_net_info('ZNET')
+        self.server = None
+        self.server_thread = None
 
-        utils.writecfg(self.host,self.port,'ZNET')
+    def start(self):
+        """ looks for previous server, trys to start a new one"""
+
+        utils.writecfg(self.host, self.port, 'ZNET')
 
         try:
-                self.server.shutdown()
-                self.server.server_close()
-                print 'killing previous server...'
+            self.server.shutdown()
+            self.server.server_close()
+            print 'killing previous server...'
         except AttributeError:
-                print 'starting a new server!'
+            print 'starting a new server!'
 
-        self.server = self.ZBrushSocketServ((self.host,int(self.port)),self.ZBrushHandler)
-        self.server.allow_reuse_address=True
+        self.server = self.ZBrushSocketServ(
+            (self.host, int(self.port)), self.ZBrushHandler)
+        self.server.allow_reuse_address = True
         self.server_thread = utils.Thread(target=self.server.serve_forever)
         self.server_thread.daemon = True
         self.server_thread.start()
-        print 'Serving on %s:%s'% (self.host,self.port)
+        print 'Serving on %s:%s' % (self.host, self.port)
 
     def stop(self):
+        """ shuts down ZBrushSever"""
         self.server.shutdown()
         self.server.server_close()
         print 'stoping...'
 
-    class ZBrushSocketServ(SocketServer.ThreadingMixIn,SocketServer.TCPServer):
+    class ZBrushSocketServ(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
+        """ extends socket server with custom settings"""
         timeout = 5
-        daemon_threads=True
-        allow_reuse_address=True
+        daemon_threads = True
+        allow_reuse_address = True
 
-        def __init__(self,server_address,RequestHandlerClass):
+        # handler is the RequestHandlerClass
+        def __init__(self, server_address, handler):
             SocketServer.TCPServer.__init__(
-                        self,
-                        server_address,
-                        RequestHandlerClass)
+                self,
+                server_address,
+                handler)
 
         def handle_timeout(self):
             print 'TIMEOUT'
 
-
     class ZBrushHandler(SocketServer.BaseRequestHandler):
 
-
-        timeout = 5
-
+        """ custom handler for ZBrushSever"""
 
         def handle(self):
-            #keep handle open until client/server close
-            while 1:
-                self.data = self.request.recv(1024).strip()
-                if not self.data:
+            # keep handle open until client/server close
+            while True:
+                data = self.request.recv(1024).strip()
+                if not data:
                     self.request.close()
                     break
                 print '\n\n'
                 print '{} sent:'.format(self.client_address[0])
-                print self.data
-                #check for conn-reset/disconnect by peer (on client)
-                if self.data == 'check':
+                print data
+                # check for conn-reset/disconnect by peer (on client)
+                if data == 'check':
                     self.request.send('ok')
 
-                #parse object list from maya
-                if self.data.split('|')[0] == 'open':
-                    objs = self.data.split('|')[1].split(':')
+                # parse object list from maya
+                if data.split('|')[0] == 'open':
+                    objs = data.split('|')[1].split(':')
                     for obj in objs:
-                        print 'got: '+obj
-                        zs_temp = self.zbrush_open(obj+'.ma')
+                        print 'got: ' + obj
+                        zs_temp = self.zbrush_open(obj + '.ma')
                         utils.send_osa(zs_temp)
                     print 'loaded all objs!'
                     self.request.send('loaded')
 
-        def zbrush_open(self,name):
-
+        # posibly revert to non static
+        @staticmethod
+        def zbrush_open(name):
             """open a file with zbrush
             -create temp zscript file
             -load with file open commands
@@ -106,16 +114,16 @@ class ZBrushServer(object):
             -import if match, append new cloned tool for unique tools
 
             """
-            script_path=utils.os.path.dirname(utils.os.path.abspath(__file__))
-            script_path=utils.os.path.join(script_path,'zbrush_load.txt')
-            zs_temp = open(script_path,'w+')
-
+            script_path = utils.os.path.dirname(
+                utils.os.path.abspath(__file__))
+            script_path = utils.os.path.join(script_path, 'zbrush_load.txt')
+            zs_temp = open(script_path, 'w+')
 
             env = utils.os.getenv(utils.SHARED_DIR_ENV)
             print env
 
-            #zbrush script to iterate through sub tools,
-            #and open matches, appends new tools
+            # zbrush script to iterate through sub tools,
+            # and open matches, appends new tools
 
             zscript = """
                     [RoutineDef, open_file,
@@ -152,24 +160,40 @@ class ZBrushServer(object):
                     [RoutineCall,open_file]
                     """
 
-            zscript = zscript.replace('#FILENAME',utils.os.path.join(env, name))
-            zscript = zscript.replace('#TOOLNAME',name.replace('.ma',''))
+            zscript = zscript.replace(
+                '#FILENAME', utils.os.path.join(env, name))
+            zscript = zscript.replace('#TOOLNAME', name.replace('.ma', ''))
             zs_temp.write(zscript)
-            return zs_temp.name 
+            return zs_temp.name
 
 
 class MayaClient(object):
 
+    """
+    Maya client used for sending meshes to maya
+
+    attributes:
+        self.host        -- current host obtained from utils.get_net_info
+        self.port        -- current port obtained from utils.get_net_info
+
+    methods:
+        zscript_ui       -- creates UI for ZBrush (appears in ZBrush)
+        test_client      -- tests connection to maya
+        send             -- sends meshes to maya
+    """
+
     def __init__(self):
-        self.host,self.port = utils.get_net_info('MNET') 
+        self.host, self.port = utils.get_net_info('MNET')
 
-    def zscript_ui(self):
+    @staticmethod
+    def zscript_ui():
+        """ assembles a zscript to be loaded by ZBrush to create GUI buttons """
 
-        script_path=utils.os.path.dirname(utils.os.path.abspath(__file__))
-        script_path=utils.os.path.join(script_path,'zbrush_gui.txt')
-        zs_temp = open(script_path,'w+')
-        
-        zscript="""
+        script_path = utils.os.path.dirname(utils.os.path.abspath(__file__))
+        script_path = utils.os.path.join(script_path, 'zbrush_gui.txt')
+        zs_temp = open(script_path, 'w+')
+
+        zscript = """
         [RoutineDef, send_file,
             [VarSet, env_path, "!:#ENVPATH/"]
             [VarSet, name, [FileNameExtract, [GetActiveToolPath], 2]]
@@ -182,7 +206,7 @@ class MayaClient(object):
             [FileNameSetNext, #export_path,"ZSTARTUP_ExportTamplates\Maya.ma"]
             [IPress,Tool:Export]
             [ShellExecute,
-                [StrMerge, #path, 
+                [StrMerge, #path,
                     [StrMerge,
                         [StrMerge, #lock_name, " "],#q
                     ]
@@ -195,8 +219,8 @@ class MayaClient(object):
         ]
 
         """
-        #zscript for sending all files to maya
-        zscript+="""
+        # zscript for sending all files to maya
+        zscript += """
         [RoutineDef, send_all,
             [VarSet,t,0]
             [SubToolSelect,0]
@@ -214,13 +238,13 @@ class MayaClient(object):
                 [FileNameSetNext, #export_path,"ZSTARTUP_ExportTamplates\Maya.ma"]
                 [IPress,Tool:Export]
                 [ShellExecute,
-                    [StrMerge, #path, 
+                    [StrMerge, #path,
                         [StrMerge,
                             [StrMerge, #lock_name, " "],#t
                         ]
                     ]
                 ]
-            ]       
+            ]
         ]
         [IButton, "TOOL:Send to Maya -all", "Export model as a *.ma to maya",
             [RoutineCall, send_all]
@@ -230,59 +254,60 @@ class MayaClient(object):
         env = utils.os.getenv(utils.SHARED_DIR_ENV)
         print env
 
-        zscript=zscript.replace('#ENVPATH',env)
+        zscript = zscript.replace('#ENVPATH', env)
         zs_temp.write(zscript)
         zs_temp.flush()
         zs_temp.close()
-        
+
         utils.send_osa(script_path)
 
     def test_client(self):
-       
-        #tests connection with maya, creates a sphere and deletes it
- 
-        utils.writecfg(self.host,self.port,'MNET')
+        """ tests connection with maya, creates a sphere and deletes it """
 
-        mayaCMD = 'import maya.cmds as cmds'
-        mayaCMD += '\n'
-        mayaCMD += 'cmds.sphere(name="test")'
-        mayaCMD += '\n'
-        mayaCMD += 'cmds.delete("test")'
-        maya = utils.socket.socket(utils.socket.AF_INET, utils.socket.SOCK_STREAM)
+        utils.writecfg(self.host, self.port, 'MNET')
+
+        maya_cmd = 'import maya.cmds as cmds'
+        maya_cmd += '\n'
+        maya_cmd += 'cmds.sphere(name="test")'
+        maya_cmd += '\n'
+        maya_cmd += 'cmds.delete("test")'
+        maya = utils.socket.socket(
+            utils.socket.AF_INET, utils.socket.SOCK_STREAM)
 
         try:
             maya.connect((self.host, int(self.port)))
-        except utils.socket.error,e:
-            print e
+        except utils.socket.error as err:
+            print err
             print 'connection refused'
             return False
         else:
-            maya.send(mayaCMD)
+            maya.send(maya_cmd)
             maya.close()
             return True
 
     @staticmethod
     def send():
+        """ sends a file to maya"""
 
-        #construct file read path for maya, uses SHARED_DIR_ENV
+        # construct file read path for maya, uses SHARED_DIR_ENV
         name = (utils.sys.argv)[1]
         file_path = utils.make_file_name(name)
 
-        mayaCMD = 'import __main__'
-        mayaCMD += '\n'
-        mayaCMD += '__main__.mayagui.serv.load("'+file_path+'")'
+        maya_cmd = 'import __main__'
+        maya_cmd += '\n'
+        maya_cmd += '__main__.mayagui.serv.load("' + file_path + '")'
 
-        maya = utils.socket.socket(utils.socket.AF_INET, utils.socket.SOCK_STREAM) 
-        host,port = utils.get_net_info('MNET')
+        maya = utils.socket.socket(
+            utils.socket.AF_INET, utils.socket.SOCK_STREAM)
+        host, port = utils.get_net_info('MNET')
 
         maya.connect((host, int(port)))
-        maya.send(mayaCMD)
+        maya.send(maya_cmd)
         maya.close()
 
 
 if __name__ == "__main__":
 
-    """send to maya/save from zbrush
-    -arg 1: object name ie: pSphere1
-    """
+    # send to maya/save from zbrush
+    #-arg 1: object name ie: pSphere1
     MayaClient.send()
