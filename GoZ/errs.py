@@ -1,3 +1,6 @@
+""" custom exceptions for GoZ """
+
+
 class GoZError(Exception):
 
     """
@@ -8,37 +11,44 @@ class GoZError(Exception):
 
     """
 
-
-    def __init__(self,msg):
-        self.msg=msg
+    def __init__(self, msg):
+        Exception.__init__(self, msg)
+        self.msg = msg
 
 
 class ZDOCSError(Exception):
+
     """
     Exception raised for missing ZDOCS env
 
     Attributes
         msg -- gui message
     """
-    def __init__(self,msg):
-        self.msg=msg
+
+    def __init__(self, msg):
+        Exception.__init__(self, msg)
+        self.msg = msg
 
 
 class IpError(Exception):
+
     """
     Exception raised for invalid IP addresses
 
     Attribitues
-        ip -- input ip address
+        host -- input host address
         msg -- gui message
 
     """
 
-    def __init__(self,ip,msg):
-        self.ip=ip
-        self.msg=msg
+    def __init__(self, host, msg):
+        Exception.__init__(self, msg)
+        self.host = host
+        self.msg = msg
+
 
 class ZBrushServerError(Exception):
+
     """
     Exception raised for connection failure
 
@@ -47,8 +57,10 @@ class ZBrushServerError(Exception):
 
     """
 
-    def __init__(self,msg):
-        self.msg=msg
+    def __init__(self, msg):
+        Exception.__init__(self, msg)
+        self.msg = msg
+
 
 class PortError(Exception):
 
@@ -59,20 +71,27 @@ class PortError(Exception):
         port -- input port
         msg  -- gui msg
     """
-    def __init__(self,port,msg):
-        self.port=port
-        self.msg=msg
-        self.message=msg
+
+    def __init__(self, port, msg):
+        Exception.__init__(self, msg)
+        self.port = port
+        self.msg = msg
+        self.message = msg
+
 
 class ZBrushServError(Exception):
+
     """
     Exception raised for connection refuse from zserv
 
     Attributes
         msg -- gui msg
     """
-    def __init__(self,msg):
-        self.msg=msg
+
+    def __init__(self, msg):
+        Exception.__init__(self, msg)
+        self.msg = msg
+
 
 class ZBrushNameError(Exception):
 
@@ -86,10 +105,12 @@ class ZBrushNameError(Exception):
 
     """
 
-    def __init__(self,obj,goz_id,msg):
-        self.obj=obj
-        self.goz_id=goz_id
-        self.msg=msg
+    def __init__(self, obj, goz_id, msg):
+        Exception.__init__(self, msg)
+        self.obj = obj
+        self.goz_id = goz_id
+        self.msg = msg
+
 
 class SelectionError(Exception):
 
@@ -101,8 +122,10 @@ class SelectionError(Exception):
 
     """
 
-    def __init__(self,msg):
-        self.msg=msg
+    def __init__(self, msg):
+        Exception.__init__(self, msg)
+        self.msg = msg
+
 
 class InUseError(Exception):
 
@@ -114,5 +137,6 @@ class InUseError(Exception):
 
     """
 
-    def __init__(self,msg):
-        self.msg=msg
+    def __init__(self, msg):
+        Exception.__init__(self, msg)
+        self.msg = msg
