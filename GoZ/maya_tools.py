@@ -212,10 +212,13 @@ class ZBrushClient(object):
         #grab meshes from selection, needs some revision
         self.objs = cmds.ls(selection=True,type='mesh',dag=True)
         if self.objs:
+
+                xforms = cmds.listRelatives(self.objs, parent=True, fullPath=True)
+                #print xforms
                 cmds.select(cl=True)
-                cmds.select(self.objs)
-                cmds.pickWalk(direction='up')
+                cmds.select(xforms)
                 self.objs = cmds.ls(selection=True)
+                print self.objs
                 cmds.select(self.objs)
                 cmds.makeIdentity(apply=True, t=1, r=1, s=1, n=0)
                 return True
@@ -253,12 +256,16 @@ class ZBrushClient(object):
                             self.goz_id = goz_id
                             goz_list.append((obj,goz_id))
 
-        return set(goz_list)
+        return goz_list
+
 
 
     def relink(self):
 
-        #revise
+        if self.goz_obj not in self.objs:
+                return
+
+        #manages re linking GoZBrush IDs, checks for attribute on shape/xform
         obj=self.goz_obj
         goz_id=self.goz_id
         pre_sel=cmds.ls(sl=True)
@@ -266,28 +273,40 @@ class ZBrushClient(object):
         cmds.rename(obj,goz_id)
         cmds.select(cl=True)
         cmds.select(goz_id)
-        shape=cmds.pickWalk(direction='down')[0]
-        goz_check=cmds.attributeQuery('GoZBrushID',node=shape,exists=True)
-    
-        if goz_check is False:
+        shape = cmds.ls(selection=True,type='mesh',dag=True)[0]
+        xform = cmds.listRelatives(shape, parent=True, fullPath=True)[0]
+        goz_check_xform=cmds.attributeQuery('GoZBrushID',node=xform,exists=True) 
+        goz_check_shape=cmds.attributeQuery('GoZBrushID',node=shape,exists=True)
+
+        if goz_check_shape is False:
             cmds.addAttr(shape,longName='GoZBrushID',dataType='string')
+        if goz_check_xform is False:
+            cmds.addAttr(xform,longName='GoZBrushID',dataType='string')
+
         cmds.setAttr(shape+'.GoZBrushID',goz_id,type='string')
+        cmds.setAttr(xform+'.GoZBrushID',goz_id,type='string')
         cmds.select(cl=True)
         pre_sel.remove(obj)
-        pre_sel.append(goz_id)
+        pre_sel.append(xform)
+        print pre_sel
         cmds.select(pre_sel)
+        
 
     def create(self):
 
-        #revise
-        obj=self.goz_obj 
+        #changes a GoZBrush ID to match object name
+        obj=self.goz_obj
         pre_sel=cmds.ls(sl=True)
         cmds.delete(obj,ch=True)
         cmds.select(cl=True)
         cmds.select(obj)
-        shape=cmds.pickWalk(direction='down')[0]
-        goz_check=cmds.attributeQuery('GoZBrushID',node=shape,exists=True)
+        shape = cmds.ls(selection=True,type='mesh',dag=True)[0]
+        xform = cmds.listRelatives(shape, parent=True, fullPath=True)[0] 
+        goz_check_xform=cmds.attributeQuery('GoZBrushID',node=xform,exists=True) 
+        goz_check_shape=cmds.attributeQuery('GoZBrushID',node=shape,exists=True)
         
-        if goz_check:
+        if goz_check_shape:
             cmds.setAttr(shape+'.GoZBrushID',obj,type='string')
+        if goz_check_xform:
+            cmds.setAttr(xform+'.GoZBrushID',obj,type='string')
         cmds.select(pre_sel)

@@ -84,10 +84,11 @@ class Win(object):
                 #check for any GoZBrushIDs, and relink/create
                 goz_result = self.client.goz_check()
                 for obj in goz_result:
-                        #clean this up
-                        self.client.goz_id = obj[1]
-                        self.client.goz_obj = obj[0]
-                        self.rename_gui()
+                        if obj[0] in self.client.objs: 
+                                #clean this up
+                                self.client.goz_id = obj[1]
+                                self.client.goz_obj = obj[0]
+                                self.rename_gui()
                 with maya_tools.utils.err_handler(self.error_gui): 
                         self.client.send()
         else:
@@ -115,7 +116,7 @@ class Win(object):
         c = confirmDialog(title="ZBrush Name Conflict",
                 message="%s has a old ZBrush ID, of %s, try to relink?" 
                 % (self.client.goz_obj,self.client.goz_id),
-                button=['Relink','Create'])
+                button=['Relink','Create','Skip'])
         if 'Relink' in c:
             #relink to past GoZBrushID
             self.client.relink()
