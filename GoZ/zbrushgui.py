@@ -1,6 +1,6 @@
 """ZBrushGUI uses zbrushtools, starts ZBrushServer and MayaClient """
 
-from . import zbrush_tools
+from GoZ import zbrush_tools as zbrush_tools
 import Tkinter
 
 

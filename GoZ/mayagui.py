@@ -8,7 +8,7 @@ from pymel.core import textField
 from pymel.core import separator
 from pymel.core import deleteUI
 from pymel.core import confirmDialog
-from . import maya_tools
+from GoZ import maya_tools as maya_tools
 
 
 class Win(object):
