@@ -51,7 +51,7 @@ class Win(object):
         self.listen_btn = None
         self.user_maya_host = None
         self.user_maya_port = None
-        self.status_ui = None
+        self.maya_status_ui = None
 
         # make the gui
         self.build()
@@ -59,8 +59,8 @@ class Win(object):
         # start MayaServer
         self.listen()
         # check ZBrushClient connection to ZBrushServer
-        with maya_tools.utils.err_handler(self.error_gui):
-            self.client.connect()
+        self.connect()
+
 
     def update_network(self):
         """ sends host/port back to client/server """
@@ -71,29 +71,39 @@ class Win(object):
         self.serv.host = self.user_maya_host.getText()
         self.serv.port = self.user_maya_port.getText()
 
-    def new_client_socket(self):
-        """
-        checks client host/port for new values
-        either creates or uses existing socket
-        note try to shorten this
-
-        """
-        if (self.client.host == self.user_zbrush_host.getText() and
-                self.client.port == self.user_zbrush_port.getText()):
-            self.client.check_socket()
-            return
+    def connect(self, *args): 
+        print args
 
         self.update_network()
-        self.client.status = False
-        self.client.sock = None
         with maya_tools.utils.err_handler(self.error_gui):
             self.client.connect()
+        self.check_status_ui()
+
+    def check_status_ui(self):
+
+        # check if client is connected, set gui accordingly
+        if self.client.status:
+            self.zbrush_status_ui.setBackgroundColor((0.0, 1.0, 0.5))
+            self.zbrush_status_ui.setLabel(
+                'Status: connected (' +
+                self.client.host + ':' +
+                str(self.client.port) + ')')
+        else:
+            self.zbrush_status_ui.setBackgroundColor((1, 0, 0))
+            self.zbrush_status_ui.setLabel('Status: not connected')
 
     def send(self, *args):
         """ send to zbrush """
         print args
 
-        self.new_client_socket()
+        self.client.check_socket()
+        self.check_status_ui()
+
+        if self.client.status is False:
+            #try last socket, or fail
+            with maya_tools.utils.err_handler(self.error_gui):
+                self.client.connect()
+            self.check_status_ui()
 
         # construct list of selection, filter meshes
         # move functionality to maya_tools
@@ -124,14 +134,14 @@ class Win(object):
 
         # check if server is up, set gui accordingly
         if self.serv.status:
-            self.status_ui.setBackgroundColor((0.0, 1.0, 0.5))
-            self.status_ui.setLabel(
+            self.maya_status_ui.setBackgroundColor((0.0, 1.0, 0.5))
+            self.maya_status_ui.setLabel(
                 'Status: listening (' +
                 self.serv.host + ':' +
                 str(self.serv.port) + ')')
         else:
-            self.status_ui.setBackgroundColor((1, 0, 0))
-            self.status_ui.setLabel('Status: not listening')
+            self.maya_status_ui.setBackgroundColor((1, 0, 0))
+            self.maya_status_ui.setLabel('Status: not listening')
 
     def rename_gui(self):
         """
@@ -173,6 +183,13 @@ class Win(object):
         self.spacer(2)
         self.send_btn = button(label="Send Meshes to ZBrush", parent=layout)
         self.spacer(2)
+        self.conn_btn = button(label="Connect to ZBrush", parent=layout)
+        self.spacer(2)
+        self.zbrush_status_ui = text(label='Status: not connected',
+                              height=30,
+                              enableBackground=True,
+                              backgroundColor=(1.0, 0.0, 0.0))
+        self.spacer(2)
         separator(style='double', height=30)
         self.spacer(1)
         text(label='Maya IP')
@@ -185,7 +202,7 @@ class Win(object):
             label="Listen for Meshes from ZBrush",
             parent=layout)
         self.spacer(2)
-        self.status_ui = text(label='Status: not listening',
+        self.maya_status_ui = text(label='Status: not listening',
                               height=30,
                               enableBackground=True,
                               backgroundColor=(1.0, 0.0, 0.0))
@@ -195,6 +212,7 @@ class Win(object):
     def buttons(self):
         """ attaches methods to callbacks """
         self.send_btn.setCommand(self.send)
+        self.conn_btn.setCommand(self.connect)
         self.listen_btn.setCommand(self.listen)
 
     @staticmethod

@@ -3,7 +3,6 @@
 import SocketServer
 from GoZ import utils as utils
 
-
 class ZBrushServer(object):
 
     """
@@ -127,6 +126,7 @@ class ZBrushServer(object):
 
             zscript = """
                     [RoutineDef, open_file,
+                    [IPress, Tool:SubTool:All Low]
                     [FileNameSetNext,"!:#FILENAME"]
                     [VarSet,in_tool,#TOOLNAME]
                     [VarSet,imp,0]
@@ -199,7 +199,7 @@ class MayaClient(object):
             [VarSet, name, [FileNameExtract, [GetActiveToolPath], 2]]
             [VarSet, name, [StrMerge,name,".ma"]]
             [IPress, Tool:SubTool:All Low]
-            [VarSet, path, "/usr/bin/python -m mclient.zbrush_export "]
+            [VarSet, path, "/usr/bin/python -m GoZ.zbrush_tools "]
             [VarSet, q, [SubToolGetActiveIndex]]
             [VarSet, export_path, [StrMerge,env_path,name_ma] ]
             [VarSet, lock_name,[FileNameExtract, [GetActiveToolPath], 2]]
@@ -231,7 +231,7 @@ class MayaClient(object):
                 [VarSet, name, [FileNameExtract, [GetActiveToolPath], 2]]
                 [VarSet, name, [StrMerge,name,".ma"]]
                 [IPress, Tool:SubTool:All Low]
-                [VarSet, path, "/usr/bin/python -m mclient.zbrush_export "]
+                [VarSet, path, "/usr/bin/python -m GoZ.zbrush_tools "]
                 [VarSet, q, [SubToolGetActiveIndex]]
                 [VarSet, export_path, [StrMerge,env_path,name_ma] ]
                 [VarSet, lock_name,[FileNameExtract, [GetActiveToolPath], 2]]
@@ -309,5 +309,5 @@ class MayaClient(object):
 if __name__ == "__main__":
 
     # send to maya/save from zbrush
-    #-arg 1: object name ie: pSphere1
+    #-arg 1: object name ie: pSphere
     MayaClient.send()

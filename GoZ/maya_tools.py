@@ -137,22 +137,43 @@ class ZBrushClient(object):
     def connect(self):
         """connects to ZBrushServer,  simplify this """
 
-        if self.sock is None:
-            self.sock = utils.socket.socket(
-                utils.socket.AF_INET, utils.socket.SOCK_STREAM)
-            # time out incase of a bad host/port that actually exists
-            self.sock.settimeout(3)
-        if self.status is False:
-            try:
-                self.sock.connect((self.host, int(self.port)))
-            except utils.socket.error as err:
-                if utils.errno.ECONNREFUSED in err:
-                    raise utils.errs.ZBrushServerError(
-                        'Connection Refused: %s:%s' % (self.host, self.port))
-            self.status = True
+        try:
+            #lazy but fine
+            self.sock.close()
+        except:
+            pass
+
+        self.status = False
+
+        utils.validate_host(self.host)
+        utils.validate_port(self.port)
+
+        # place new network settings back in ENVs and cfg file
+        utils.writecfg(self.host, self.port, 'ZNET')
+        
+        self.sock = utils.socket.socket(
+            utils.socket.AF_INET, utils.socket.SOCK_STREAM)
+        # time out incase of a bad host/port that actually exists
+        self.sock.settimeout(20)
+        
+        try:
+            self.sock.connect((self.host, int(self.port)))
+        except utils.socket.error as err:
+            self.status = False
+            if utils.errno.ECONNREFUSED in err:
+                raise utils.errs.ZBrushServerError(
+                    'Connection Refused: %s:%s' % (self.host, self.port))
+
+        self.status = True
+        # poll ZBrushServer
+        #self.check_socket()
+
 
     def check_socket(self):
         """ verify connection to zbrush """
+
+        if self.sock is None:
+            return
 
         try:
             self.sock.send('check')
@@ -165,6 +186,8 @@ class ZBrushClient(object):
                 self.sock.close()
                 self.sock = None
                 print 'conn reset!'
+                #raise utils.errs.ZBrushServerError(
+                #    'Connection Reset: %s:%s' % (self.host, self.port))
 
         except utils.socket.error as err:
             # catches server down errors, resets socket
@@ -172,33 +195,30 @@ class ZBrushClient(object):
             self.sock.close()
             self.sock = None
             if utils.errno.ECONNREFUSED in err:
+                print 'conn ref'
                 # server probbly down
-                raise utils.errs.ZBrushServerError(
-                    'Connection Refused: %s:%s' % (self.host, self.port))
+                #raise utils.errs.ZBrushServerError(
+                #    'Connection Refused: %s:%s' % (self.host, self.port))
             if utils.errno.EADDRINUSE in err:
                 # this is fine
                 print 'already connected...'
             if utils.errno.EPIPE in err:
                 # server down, or unexpected connection interuption
                 print 'broken pipe, trying to reconnect'
+        except AttributeError:
+            print 'need new sock'
 
     def send(self):
         """ send to ZBrush """
 
-        utils.validate_host(self.host)
-        utils.validate_port(self.port)
-
-        # place new network settings back in ENVs and cfg file
-        utils.writecfg(self.host, self.port, 'ZNET')
-
-        # poll ZBrushServer
-        self.check_socket()
         # export, send
-        if self.sock is not None:
+        if self.status:
             self.export()
             self.sock.send('open|' + ':'.join(self.objs))
             # check receipt of objs
             self.load_confirm()
+        else:
+            raise utils.errs.ZBrushServerError('Please connect to ZBrushServer first')
 
     def load_confirm(self):
         """ make sure files loaded correctly """
@@ -209,6 +229,7 @@ class ZBrushClient(object):
             self.status = False
             self.sock = None
             print 'ZBrushServer is down!'
+            raise utils.errs.ZBrushServerError('ZBrushServer is down!')
 
     def export(self):
         """ save some files """
