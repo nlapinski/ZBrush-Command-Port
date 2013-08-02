@@ -52,6 +52,8 @@ class Win(object):
         self.user_maya_host = None
         self.user_maya_port = None
         self.maya_status_ui = None
+        self.conn_btn = None
+        self.zbrush_status_gui = None
 
         # make the gui
         self.build()
@@ -60,7 +62,6 @@ class Win(object):
         self.listen()
         # check ZBrushClient connection to ZBrushServer
         self.connect()
-
 
     def update_network(self):
         """ sends host/port back to client/server """
@@ -101,7 +102,7 @@ class Win(object):
         self.check_status_ui()
 
         if self.client.status is False:
-            #try last socket, or fail
+            # try last socket, or fail
             with maya_tools.utils.err_handler(self.error_gui):
                 self.client.connect()
             self.check_status_ui()
@@ -187,9 +188,9 @@ class Win(object):
         self.conn_btn = button(label="Connect to ZBrush", parent=layout)
         self.spacer(2)
         self.zbrush_status_ui = text(label='Status: not connected',
-                              height=30,
-                              enableBackground=True,
-                              backgroundColor=(1.0, 0.0, 0.0))
+                                     height=30,
+                                     enableBackground=True,
+                                     backgroundColor=(1.0, 0.0, 0.0))
         self.spacer(2)
         separator(style='double', height=30)
         self.spacer(1)
@@ -204,9 +205,9 @@ class Win(object):
             parent=layout)
         self.spacer(2)
         self.maya_status_ui = text(label='Status: not listening',
-                              height=30,
-                              enableBackground=True,
-                              backgroundColor=(1.0, 0.0, 0.0))
+                                   height=30,
+                                   enableBackground=True,
+                                   backgroundColor=(1.0, 0.0, 0.0))
         self.spacer(1)
         self.gui_window.show()
 
