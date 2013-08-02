@@ -2,6 +2,7 @@
 
 from GoZ import zbrush_tools as zbrush_tools
 import Tkinter
+import tkMessageBox
 
 
 class ZBrushGUI(object):
@@ -46,12 +47,19 @@ class ZBrushGUI(object):
         self.serv.host = self.zbrush_host_ui.get()
         self.serv.port = self.zbrush_port_ui.get()
 
-        self.serv.start()
 
-        status_line = 'ZBrushServer Status: %s:%s' % (
-            self.serv.host, self.serv.port)
+        with zbrush_tools.utils.err_handler(self.error_gui):
+            self.serv.start()
 
-        self.zbrush_status_ui.config(text=status_line, background='green')
+        if self.serv.status:
+            status_line = 'ZBrushServer Status: %s:%s' % (
+                self.serv.host, self.serv.port)
+
+            self.zbrush_status_ui.config(text=status_line, background='green')
+        else:
+            self.zbrush_status_ui.config(
+                text='ZBrushServer Status: down',
+                background='red')
 
     def serv_stop(self):
         """stop server command """
@@ -73,15 +81,19 @@ class ZBrushGUI(object):
         self.client.host = self.maya_host_ui.get()
         self.client.port = self.maya_port_ui.get()
 
-        if self.client.test_client():
+
+        self.maya_status_ui.config(
+            text='MayaClient Status: conn refused',
+            background='red')
+
+        with zbrush_tools.utils.err_handler(self.error_gui):
+            ret=self.client.test_client()
+
+        if ret:
             print 'connected to maya'
             self.maya_status_ui.config(
                 text='MayaClient Status: connected',
                 background='green')
-        else:
-            self.maya_status_ui.config(
-                text='MayaClient Status: conn refused',
-                background='red')
 
     def build(self):
         """Creates tkinter UI """
@@ -93,31 +105,23 @@ class ZBrushGUI(object):
                 pady=5,
                 padx=25)
 
+
         Tkinter.Label(
             self.win,
-            text='Set hosts/ports in default.cfg').pack(
+            text='Set host/port in MNET/ZNET envs').pack(
                 pady=0,
                 padx=25)
         Tkinter.Label(
             self.win,
-            text='If not set starts in local mode').pack(
+            text='like: ZNET=127.0.0.1:6668').pack(
                 pady=0,
                 padx=25)
         Tkinter.Label(
             self.win,
-            text='ZBrush should be launched first').pack(
+            text='If not set, starts in local mode').pack(
                 pady=0,
                 padx=25)
-        Tkinter.Label(
-            self.win,
-            text='Everything should be automatic').pack(
-                pady=0,
-                padx=25)
-        Tkinter.Label(
-            self.win,
-            text='Changes are added to default.cfg').pack(
-                pady=0,
-                padx=25)
+
 
         zb_cfg = Tkinter.LabelFrame(self.win, text="ZBrush Server")
         zb_cfg.pack(pady=15, fill="both", expand="yes")
@@ -175,3 +179,9 @@ class ZBrushGUI(object):
             text='MayaClient Status: conn refused',
             background='red')
         self.maya_status_ui.pack(pady=5, padx=5)
+
+
+    @staticmethod
+    def error_gui(message):
+        """simple tkinter gui for displaying errors"""
+        tkMessageBox.showwarning('GoZ Error:',message)

@@ -30,11 +30,17 @@ class ZBrushServer(object):
         self.host, self.port = utils.get_net_info('ZNET')
         self.server = None
         self.server_thread = None
+        self.status = False
 
 
     def start(self):
         """ looks for previous server, trys to start a new one"""
 
+        self.status = False
+
+        utils.validate_host(self.host)
+        utils.validate_port(self.port)
+        
         utils.writecfg(self.host, self.port, 'ZNET')
 
         try:
@@ -51,12 +57,14 @@ class ZBrushServer(object):
         self.server_thread.daemon = True
         self.server_thread.start()
         print 'Serving on %s:%s' % (self.host, self.port)
+        self.status = True
 
     def stop(self):
         """ shuts down ZBrushSever"""
         self.server.shutdown()
         self.server.server_close()
         print 'stoping...'
+        self.status = False
 
     class ZBrushSocketServ(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
@@ -380,6 +388,10 @@ class MayaClient(object):
     def test_client(self):
         """ tests connection with maya, creates a sphere and deletes it """
 
+
+        utils.validate_host(self.host)
+        utils.validate_port(self.port)
+
         utils.writecfg(self.host, self.port, 'MNET')
 
         maya_cmd = 'import maya.cmds as cmds'
@@ -389,12 +401,15 @@ class MayaClient(object):
         maya_cmd += 'cmds.delete("test")'
         maya = utils.socket.socket(
             utils.socket.AF_INET, utils.socket.SOCK_STREAM)
-
+        maya.settimeout(5)
         try:
             maya.connect((self.host, int(self.port)))
         except utils.socket.error as err:
             print err
             print 'connection refused'
+            return False
+        except ValueError:
+            print 'specify a valid port'
             return False
         else:
             maya.send(maya_cmd)

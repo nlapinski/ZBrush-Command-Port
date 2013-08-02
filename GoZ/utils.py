@@ -15,7 +15,7 @@ methods:
     make_file_name  -- constructs a file path, with ENVs
     err_handler     -- general error handler
                        takes a gui/logger function
-    get_net_info    -- takes a eniromental varaible to look for
+    get_net_info    -- takes a env varaible to look for
                        returns host/port
     read_cfg        -- looks in defaults.cfg for host/port info
 
@@ -31,9 +31,12 @@ import ConfigParser
 import errno
 
 SHARED_DIR_ENV = 'ZDOCS'
-DEFAULT_NET = {'MNET': '127.0.0.1:6667', 'ZNET': '127.0.0.1:6668'}
 CFG = 'defaults.cfg'
 
+MAYA_ENV = 'MNET'
+ZBRUSH_ENV = 'ZNET'
+
+DEFAULT_NET = {MAYA_ENV: '127.0.0.1:6667', ZBRUSH_ENV: '127.0.0.1:6668'}
 
 @contextmanager
 def err_handler(gui):
@@ -147,7 +150,12 @@ def get_net_info(net_env):
 
     if net_string:
         print net_string
-        return validate(net_string)
+        try:
+            validate(net_string)
+        except:
+            pass
+        else:
+            return validate(net_string)
 
     # finally default to local mode
     net_string = DEFAULT_NET[net_env]
