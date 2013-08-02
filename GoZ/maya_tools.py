@@ -154,7 +154,7 @@ class ZBrushClient(object):
         self.sock = utils.socket.socket(
             utils.socket.AF_INET, utils.socket.SOCK_STREAM)
         # time out incase of a bad host/port that actually exists
-        self.sock.settimeout(20)
+        self.sock.settimeout(45)
 
         try:
             self.sock.connect((self.host, int(self.port)))

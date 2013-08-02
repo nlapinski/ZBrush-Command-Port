@@ -129,6 +129,20 @@ class ZBrushServer(object):
                     //functions for opening *.ma files 
                     [RoutineDef, open_file,
 
+                    //check to make sure a tool is open
+                    [VarSet, ui,[IExists,Tool:SubTool:All Low]]
+
+
+                    //if no open tool make a new tool to import ST into
+                    [If, ui == 0,
+
+                    [IPress,Tool:PolyMesh3D]
+                    [IPress,Tool:Make PolyMesh3D]
+
+
+                    ,]
+
+
                     //set all subtools low to preserver sub-d
                     [IPress, Tool:SubTool:All Low]
 
@@ -200,6 +214,15 @@ class ZBrushServer(object):
                                 [MessageOk, "Error loading tool"]
                             ]
                     ]
+
+                    [If, ui == 0,
+
+                    [IPress,Tool:SubTool:PM3D_PolyMesh3D]
+                    [IPress,Tool:SubTool:Delete]
+
+
+                    ,]
+
                     ]
                     [RoutineCall,open_file]
                     """
