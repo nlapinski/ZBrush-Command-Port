@@ -138,7 +138,7 @@ class ZBrushClient(object):
         """connects to ZBrushServer,  simplify this """
 
         try:
-            #lazy but fine
+            #close old socket, might not be needed
             self.sock.close()
         except:
             pass

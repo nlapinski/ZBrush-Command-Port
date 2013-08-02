@@ -71,7 +71,8 @@ class Win(object):
         self.serv.host = self.user_maya_host.getText()
         self.serv.port = self.user_maya_port.getText()
 
-    def connect(self, *args): 
+    def connect(self, *args):
+        """ connects to ZBrushServer using maya_tools"""
         print args
 
         self.update_network()
@@ -80,7 +81,7 @@ class Win(object):
         self.check_status_ui()
 
     def check_status_ui(self):
-
+        """ updates statuslines, connected/disconnected for zbrush """
         # check if client is connected, set gui accordingly
         if self.client.status:
             self.zbrush_status_ui.setBackgroundColor((0.0, 1.0, 0.5))
