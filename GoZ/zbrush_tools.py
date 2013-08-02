@@ -189,60 +189,102 @@ class MayaClient(object):
     def zscript_ui():
         """ assembles a zscript to be loaded by ZBrush to create GUI buttons """
 
+        #grab the current path of this file, make a temp file in the same location
         script_path = utils.os.path.dirname(utils.os.path.abspath(__file__))
         script_path = utils.os.path.join(script_path, 'zbrush_gui.txt')
         zs_temp = open(script_path, 'w+')
 
+        #zscript to create the 'send' button
         zscript = """
         [RoutineDef, send_file,
-            [VarSet, env_path, "!:#ENVPATH/"]
-            [VarSet, name, [FileNameExtract, [GetActiveToolPath], 2]]
-            [VarSet, name, [StrMerge,name,".ma"]]
+            //set lowest subtool resolution
             [IPress, Tool:SubTool:All Low]
-            [VarSet, path, "/usr/bin/python -m GoZ.zbrush_tools "]
-            [VarSet, q, [SubToolGetActiveIndex]]
-            [VarSet, export_path, [StrMerge,env_path,name_ma] ]
-            [VarSet, lock_name,[FileNameExtract, [GetActiveToolPath], 2]]
+            
+            //base path for saving files
+            //'!:' is required to prefix paths in ZBrush
+            //   #ENVPATH is replaced with the expanded SHARED_DIR_ENV
+            [VarSet, env_path, "!:#ENVPATH/"]
+            
+            //extracts the current active tool name
+            [VarSet, tool_name,[FileNameExtract, [GetActiveToolPath], 2]]
+            
+            //appends .ma to the path for export, construct filename
+            [VarSet, file_name, [StrMerge,tool_name,".ma"]]
+            
+            //python module execution command
+            [VarSet, module_path, "/usr/bin/python -m GoZ.zbrush_tools "]
+            
+            //append env to file path
+            [VarSet, export_path, [StrMerge,env_path,file_name] ]
+            
+            //set the maya 'tamplate?' I think ofer spelled something wrong
+            //this sets the file name for the next export \w correct 'tamplate'
             [FileNameSetNext, #export_path,"ZSTARTUP_ExportTamplates\Maya.ma"]
+            
+            //finally export the tool
             [IPress,Tool:Export]
+
+            //trigger the python module to send maya the load commands
             [ShellExecute,
-                [StrMerge, #path,
-                    [StrMerge,
-                        [StrMerge, #lock_name, " "],#q
-                    ]
+                //merge the python command with the tool name
+                [StrMerge, #module_path,
+                        #tool_name
                 ]
             ]
         ]
-
+        
+        //gui button for triggering this script
         [IButton, "TOOL:Send to Maya", "Export model as a *.ma to maya",
             [RoutineCall, send_file]
         ]
 
         """
-        # zscript for sending all files to maya
+        # zscript to create the 'send -all' button
         zscript += """
         [RoutineDef, send_all,
+
+            //set all tools to lowest sub-d 
+            [IPress, Tool:SubTool:All Low]
+
+            //iterator variable
             [VarSet,t,0]
+
+            //start at the first subtoo
             [SubToolSelect,0]
+
+            //iterate through all subtools
             [Loop,[SubToolGetCount],
+                
+                //increment iterator
                 [VarSet,t,t+1]
+
+                //select current subtool index in loop
                 [SubToolSelect,t-1]
+
+                //set base export path #ENVPATH is replace with SHARED_DIR_ENV (expanded)
                 [VarSet, env_path, "!:#ENVPATH/"]
-                [VarSet, name, [FileNameExtract, [GetActiveToolPath], 2]]
-                [VarSet, name, [StrMerge,name,".ma"]]
-                [IPress, Tool:SubTool:All Low]
-                [VarSet, path, "/usr/bin/python -m GoZ.zbrush_tools "]
-                [VarSet, q, [SubToolGetActiveIndex]]
-                [VarSet, export_path, [StrMerge,env_path,name_ma] ]
-                [VarSet, lock_name,[FileNameExtract, [GetActiveToolPath], 2]]
+
+                //current tool name
+                [VarSet, tool_name, [FileNameExtract, [GetActiveToolPath], 2]]
+
+                //start constructing export file path /some/dir/tool.ma
+                [VarSet, file_name, [StrMerge,tool_name,".ma"]]
+
+                //base python module shell command
+                [VarSet, module_path, "/usr/bin/python -m GoZ.zbrush_tools "]
+
+                
+                //full export path
+                [VarSet, export_path, [StrMerge,env_path,file_name] ]
+                
+                //set export path to be used by next command
                 [FileNameSetNext, #export_path,"ZSTARTUP_ExportTamplates\Maya.ma"]
+                
+                //finally export
                 [IPress,Tool:Export]
                 [ShellExecute,
-                    [StrMerge, #path,
-                        [StrMerge,
-                            [StrMerge, #lock_name, " "],#t
-                        ]
-                    ]
+                    //join module_path tool_name for maya to load
+                    [StrMerge, #module_path, #tool_name]
                 ]
             ]
         ]
