@@ -38,6 +38,7 @@ ZBRUSH_ENV = 'ZNET'
 
 DEFAULT_NET = {MAYA_ENV: '127.0.0.1:6667', ZBRUSH_ENV: '127.0.0.1:6668'}
 
+
 @contextmanager
 def err_handler(gui):
     """handles general GoZ errors, raises a gui/logger on err """
@@ -198,7 +199,7 @@ def open_osa():
     cmd = "osascript -e 'tell app \"ZBrush\" to launch'"
     print cmd
     os.system(cmd)
-    
+
     cmd = "osascript -e 'tell app \"ZBrush\" to activate'"
     print cmd
     os.system(cmd)

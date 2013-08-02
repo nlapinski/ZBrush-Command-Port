@@ -3,6 +3,7 @@
 import SocketServer
 from GoZ import utils as utils
 
+
 class ZBrushServer(object):
 
     """
@@ -32,7 +33,6 @@ class ZBrushServer(object):
         self.server_thread = None
         self.status = False
 
-
     def start(self):
         """ looks for previous server, trys to start a new one"""
 
@@ -40,7 +40,7 @@ class ZBrushServer(object):
 
         utils.validate_host(self.host)
         utils.validate_port(self.port)
-        
+
         utils.writecfg(self.host, self.port, 'ZNET')
 
         try:
@@ -134,7 +134,7 @@ class ZBrushServer(object):
             # and open matches, appends new tools
 
             zscript = """
-                    //functions for opening *.ma files 
+                    //functions for opening *.ma files
                     [RoutineDef, open_file,
 
                     //check to make sure a tool is open
@@ -164,12 +164,12 @@ class ZBrushServer(object):
 
                     //set loop count based on tool count
                     [Loop, [SubToolGetCount],
-                    
+
                     //set next import path #FILENAME is replaced with the file from Maya
                     //!: is required in zbrush file names, not sure why
                     // file path must be fully expanded no env vars
                     [FileNameSetNext,"!:#FILENAME"]
-                    
+
                     //increment iterator, current tool
                     //for some reason this needs to be a single char
                     // or zbrush gets confused about variable reference
@@ -198,7 +198,7 @@ class ZBrushServer(object):
 
                                 //copy current sub tool
                                 [IPress,Tool:SubTool:Duplicate]
-                                
+
                                 //selected cloned tool to replace
                                 [IPress,Tool:SubTool:MoveDown]
 
@@ -235,8 +235,8 @@ class ZBrushServer(object):
                     [RoutineCall,open_file]
                     """
 
-            #swap above zscript #'s with info from maya
-            #then write to temp file
+            # swap above zscript #'s with info from maya
+            # then write to temp file
             zscript = zscript.replace(
                 '#FILENAME', utils.os.path.join(env, name))
             zscript = zscript.replace('#TOOLNAME', name.replace('.ma', ''))
@@ -266,43 +266,44 @@ class MayaClient(object):
     def activate_zbrush():
         """ osascript -e 'tell app "ZBrush" to activate' """
         utils.open_osa()
-    
+
     @staticmethod
     def zscript_ui():
         """ assembles a zscript to be loaded by ZBrush to create GUI buttons """
 
-        #grab the current path of this file, make a temp file in the same location
+        # grab the current path of this file, make a temp file in the same
+        # location
         script_path = utils.os.path.dirname(utils.os.path.abspath(__file__))
         script_path = utils.os.path.join(script_path, 'zbrush_gui.txt')
         zs_temp = open(script_path, 'w+')
 
-        #zscript to create the 'send' button
+        # zscript to create the 'send' button
         zscript = """
         [RoutineDef, send_file,
             //set lowest subtool resolution
             [IPress, Tool:SubTool:All Low]
-            
+
             //base path for saving files
             //'!:' is required to prefix paths in ZBrush
             //   #ENVPATH is replaced with the expanded SHARED_DIR_ENV
             [VarSet, env_path, "!:#ENVPATH/"]
-            
+
             //extracts the current active tool name
             [VarSet, tool_name,[FileNameExtract, [GetActiveToolPath], 2]]
-            
+
             //appends .ma to the path for export, construct filename
             [VarSet, file_name, [StrMerge,tool_name,".ma"]]
-            
+
             //python module execution command
             [VarSet, module_path, "/usr/bin/python -m GoZ.zbrush_tools "]
-            
+
             //append env to file path
             [VarSet, export_path, [StrMerge,env_path,file_name] ]
-            
+
             //set the maya 'tamplate?' I think ofer spelled something wrong
             //this sets the file name for the next export \w correct 'tamplate'
             [FileNameSetNext, #export_path,"ZSTARTUP_ExportTamplates\Maya.ma"]
-            
+
             //finally export the tool
             [IPress,Tool:Export]
 
@@ -314,7 +315,7 @@ class MayaClient(object):
                 ]
             ]
         ]
-        
+
         //gui button for triggering this script
         [IButton, "TOOL:Send to Maya", "Export model as a *.ma to maya",
             [RoutineCall, send_file]
@@ -325,7 +326,7 @@ class MayaClient(object):
         zscript += """
         [RoutineDef, send_all,
 
-            //set all tools to lowest sub-d 
+            //set all tools to lowest sub-d
             [IPress, Tool:SubTool:All Low]
 
             //iterator variable
@@ -336,7 +337,7 @@ class MayaClient(object):
 
             //iterate through all subtools
             [Loop,[SubToolGetCount],
-                
+
                 //increment iterator
                 [VarSet,t,t+1]
 
@@ -355,13 +356,13 @@ class MayaClient(object):
                 //base python module shell command
                 [VarSet, module_path, "/usr/bin/python -m GoZ.zbrush_tools "]
 
-                
+
                 //full export path
                 [VarSet, export_path, [StrMerge,env_path,file_name] ]
-                
+
                 //set export path to be used by next command
                 [FileNameSetNext, #export_path,"ZSTARTUP_ExportTamplates\Maya.ma"]
-                
+
                 //finally export
                 [IPress,Tool:Export]
                 [ShellExecute,
@@ -387,7 +388,6 @@ class MayaClient(object):
 
     def test_client(self):
         """ tests connection with maya, creates a sphere and deletes it """
-
 
         utils.validate_host(self.host)
         utils.validate_port(self.port)
