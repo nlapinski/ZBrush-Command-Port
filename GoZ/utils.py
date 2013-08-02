@@ -182,3 +182,15 @@ def send_osa(script_path):
     cmd = ' '.join(cmd)
     print cmd
     os.system(cmd)
+
+
+def open_osa():
+    """ opens zbrush """
+
+    cmd = "osascript -e 'tell app \"ZBrush\" to launch'"
+    print cmd
+    os.system(cmd)
+    
+    cmd = "osascript -e 'tell app \"ZBrush\" to activate'"
+    print cmd
+    os.system(cmd)

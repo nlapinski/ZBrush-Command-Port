@@ -31,6 +31,7 @@ class ZBrushServer(object):
         self.server = None
         self.server_thread = None
 
+
     def start(self):
         """ looks for previous server, trys to start a new one"""
 
@@ -125,41 +126,86 @@ class ZBrushServer(object):
             # and open matches, appends new tools
 
             zscript = """
+                    //functions for opening *.ma files 
                     [RoutineDef, open_file,
-                    [IPress, Tool:SubTool:All Low]
-                    [FileNameSetNext,"!:#FILENAME"]
-                    [VarSet,in_tool,#TOOLNAME]
-                    [VarSet,imp,0]
-                    [Loop, [SubToolGetCount],
-                    [FileNameSetNext,"!:#FILENAME"]
-                    [VarSet, a, a+1]
-                    [SubToolSelect,a-1]
-                    //[VarSet, sub, [FileNameExtract,[GetActiveToolPath],2]]
 
+                    //set all subtools low to preserver sub-d
+                    [IPress, Tool:SubTool:All Low]
+
+                    //import tool name, #TOOLNAME is replace with the .ma file name
+                    // this is the same as the object name in maya
+                    [VarSet,in_tool,#TOOLNAME]
+
+                    //incremented if a tool match is found
+                    //used to check if a new sub needs to be made
+                    [VarSet,imp,0]
+
+                    //set loop count based on tool count
+                    [Loop, [SubToolGetCount],
+                    
+                    //set next import path #FILENAME is replaced with the file from Maya
+                    //!: is required in zbrush file names, not sure why
+                    // file path must be fully expanded no env vars
+                    [FileNameSetNext,"!:#FILENAME"]
+                    
+                    //increment iterator, current tool
+                    //for some reason this needs to be a single char
+                    // or zbrush gets confused about variable reference
+                    [VarSet, t, t+1]
+
+                    //select current subtool index
+                    // minus 1 to keep base 0, not 1
+                    [SubToolSelect,t-1]
+
+                    //get currently selected tool name to compare
                     [VarSet,SubToolTitle,[IgetTitle, Tool:Current Tool]]
                     [VarSet,sub, [FileNameExtract, SubToolTitle, 2]]
 
-
+                    //convoluded way to check for a string match
+                    //looks for matching sub tools to import/create new
                     [If,([StrLength,in_tool]==[StrLength,sub])&&([StrFind,sub,in_tool]>-1),
                         [IPress,Tool:Import]
                         [VarSet,imp,1],]
-                        //[LoopExit]
                     ]
+
+                    //check if this tool was imported yet
                     [If, imp<1,
-                            [If, a==[SubToolGetCount],
+
+                            //make sure all sub tools were iterated
+                            [If, t==[SubToolGetCount],
+
+                                //copy current sub tool
                                 [IPress,Tool:SubTool:Duplicate]
+                                
+                                //selected cloned tool to replace
                                 [IPress,Tool:SubTool:MoveDown]
+
+                                //clear any sub-d
                                 [IPress,Tool:Geometry:Del Higher]
+
+                                //set import file name path
                                 [FileNameSetNext,"!:#FILENAME"]
+
+                                //finally import
                                 [IPress,Tool:Import]
+
+                                //replace old sub tool path
+                                //not sure why this is needed but
+                                //'cloned' sub tools maintain a file path
+                                //to their orginal file
                                 [ToolSetPath,[SubToolGetCount],"!:#FILENAME"]
-                                , [MessageOk, False]
+                                ,
+                                //this occurs if something went really wrong
+                                //should never happen unless a file path is broken
+                                [MessageOk, "Error loading tool"]
                             ]
                     ]
                     ]
                     [RoutineCall,open_file]
                     """
 
+            #swap above zscript #'s with info from maya
+            #then write to temp file
             zscript = zscript.replace(
                 '#FILENAME', utils.os.path.join(env, name))
             zscript = zscript.replace('#TOOLNAME', name.replace('.ma', ''))
@@ -185,6 +231,11 @@ class MayaClient(object):
     def __init__(self):
         self.host, self.port = utils.get_net_info('MNET')
 
+    @staticmethod
+    def activate_zbrush():
+        """ osascript -e 'tell app "ZBrush" to activate' """
+        utils.open_osa()
+    
     @staticmethod
     def zscript_ui():
         """ assembles a zscript to be loaded by ZBrush to create GUI buttons """

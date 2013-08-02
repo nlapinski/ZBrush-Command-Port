@@ -64,7 +64,7 @@ class ZBrushGUI(object):
     def zscript_ui(self):
         """install UI in ZBrush """
 
-        print 'make zbrush ui'
+        self.client.activate_zbrush()  
         self.client.zscript_ui()
 
     def test_client(self):
