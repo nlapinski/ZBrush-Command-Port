@@ -422,7 +422,10 @@ class MayaClient(object):
 
         # construct file read path for maya, uses SHARED_DIR_ENV
         name = (utils.sys.argv)[1]
-        file_path = utils.make_file_name(name)
+        #make realative path
+        file_path = utils.make_fp_rel(name)
+
+        print file_path
 
         maya_cmd = 'import __main__'
         maya_cmd += '\n'
@@ -431,6 +434,8 @@ class MayaClient(object):
         maya = utils.socket.socket(
             utils.socket.AF_INET, utils.socket.SOCK_STREAM)
         host, port = utils.get_net_info('MNET')
+
+        print host,port
 
         maya.connect((host, int(port)))
         maya.send(maya_cmd)

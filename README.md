@@ -12,26 +12,32 @@ Install
 - Alternativly sym link it to your site-packages folders   
 - Currently this only is tested on OSX/Linux   
 
-	```bash
-	ln -s /Users/name/GoZ/ /your/python/site-packages/GoZ
-        ln -s /USers/name/GoZ/ /maya/default/site-packages/GoZ
-	```
+```bash
+ln -s /Users/name/GoZ/ /your/python/site-packages/GoZ
+ln -s /USers/name/GoZ/ /maya/default/site-packages/GoZ
+```
 - Create a shelf button in Maya simmilar to:  
 
-	```python
-	import GoZ.mayagui    
-        mayagui=GoZ.mayagui.Win()
-	```
+```python
+import GoZ.mayagui    
+mayagui=GoZ.mayagui.Win()
+```
+
+- Create a 'send' shelf button in Maya:
+
+```python
+mayagui.send()
+```        
 
 - Start ZBrushServer config with: 
 
-	```python
-	/usr/bin/python -m GoZ.go
-	```
+```python
+/usr/bin/python -m GoZ.go
+```
 
 - Create a folder ZBrush and Maya have acess to (network drive)
 - set up the shared  enviromental variable on each machine:
 
-	```bash
-	export ZDOCS = /path/to/goz_default
-	```
+```bash
+export ZDOCS = /path/to/goz_default
+```

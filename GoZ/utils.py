@@ -48,7 +48,6 @@ def err_handler(gui):
     except (errs.PortError,
             errs.IpError,
             errs.SelectionError,
-            errs.InUseError,
             errs.ZBrushServerError) as err:
         print err.msg
         gui(err.msg)
@@ -180,6 +179,12 @@ def make_file_name(name):
     expanded_path = os.path.expandvars(env_path)
     return expanded_path
 
+def make_fp_rel(name):
+
+
+    name = os.path.relpath(name + '.ma')
+    env_path = os.path.join('$' + SHARED_DIR_ENV, name)
+    return env_path
 
 def send_osa(script_path):
     """ sends a zscript file for zbrush to open """

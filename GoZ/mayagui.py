@@ -63,6 +63,10 @@ class Win(object):
         # check ZBrushClient connection to ZBrushServer
         self.connect()
 
+
+        self.client.check_socket()
+        self.check_status_ui()
+
     def update_network(self):
         """ sends host/port back to client/server """
 
@@ -96,10 +100,12 @@ class Win(object):
 
     def send(self, *args):
         """ send to zbrush """
-        print args
 
         self.client.check_socket()
-        self.check_status_ui()
+        try:
+            self.check_status_ui()
+        except:
+            pass
 
         if self.client.status is False:
             # try last socket, or fail
@@ -107,8 +113,8 @@ class Win(object):
                 self.client.connect()
             self.check_status_ui()
 
+
         # construct list of selection, filter meshes
-        # move functionality to maya_tools
         if self.client.parse_objs():
             # check for any GoZBrushIDs, and relink/create
             goz_result = self.client.goz_check()
