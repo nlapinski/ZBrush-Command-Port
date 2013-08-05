@@ -135,7 +135,7 @@ class ZBrushClient(object):
         self.ascii_path = None
 
     def connect(self):
-        """connects to ZBrushServer,  simplify this """
+        """connects to ZBrushServer """
 
         try:
             # close old socket, might not exist so skip
@@ -165,8 +165,6 @@ class ZBrushClient(object):
                     'Connection Refused: %s:%s' % (self.host, self.port))
 
         self.status = True
-        # poll ZBrushServer
-        # self.check_socket()
 
     def check_socket(self):
         """ verify connection to zbrush """
@@ -185,8 +183,6 @@ class ZBrushClient(object):
                 self.sock.close()
                 self.sock = None
                 print 'conn reset!'
-                # raise utils.errs.ZBrushServerError(
-                #    'Connection Reset: %s:%s' % (self.host, self.port))
 
         except utils.socket.error as err:
             # catches server down errors, resets socket
@@ -196,8 +192,6 @@ class ZBrushClient(object):
             if utils.errno.ECONNREFUSED in err:
                 print 'conn ref'
                 # server probbly down
-                # raise utils.errs.ZBrushServerError(
-                #    'Connection Refused: %s:%s' % (self.host, self.port))
             if utils.errno.EADDRINUSE in err:
                 # this is fine
                 print 'already connected...'
@@ -268,8 +262,7 @@ class ZBrushClient(object):
             return False
 
     def goz_check(self):
-        """ clean up this function, watch for merging 2obs with unique """
-        # GoZBruhsIDs
+        """ creates a list of objects with GoZBrushID in history """
 
         goz_list = []
 
