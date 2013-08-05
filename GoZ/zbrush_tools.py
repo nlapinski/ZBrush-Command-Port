@@ -94,8 +94,6 @@ class ZBrushServer(object):
                 if not data:
                     self.request.close()
                     break
-                print '\n\n'
-                print '%s sent:'(self.client_address[0])
                 print data
                 # check for conn-reset/disconnect by peer (on client)
                 if data == 'check':
