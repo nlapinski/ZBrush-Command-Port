@@ -1,7 +1,6 @@
 """ custom exceptions for GoZ """
 
 
-
 class IpError(Exception):
 
     """
@@ -64,5 +63,3 @@ class SelectionError(Exception):
     def __init__(self, msg):
         Exception.__init__(self, msg)
         self.msg = msg
-
-

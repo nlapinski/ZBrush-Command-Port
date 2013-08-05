@@ -1,4 +1,4 @@
 #!/usr/bin/python
 
-import zbrushgui
+from . import zbrushgui
 zbg = zbrushgui.ZBrushGUI()

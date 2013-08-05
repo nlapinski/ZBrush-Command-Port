@@ -63,7 +63,6 @@ class Win(object):
         # check ZBrushClient connection to ZBrushServer
         self.connect()
 
-
         self.client.check_socket()
         self.check_status_ui()
 
@@ -112,7 +111,6 @@ class Win(object):
             with maya_tools.utils.err_handler(self.error_gui):
                 self.client.connect()
             self.check_status_ui()
-
 
         # construct list of selection, filter meshes
         if self.client.parse_objs():
