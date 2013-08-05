@@ -95,7 +95,7 @@ class ZBrushServer(object):
                     self.request.close()
                     break
                 print '\n\n'
-                print '{} sent:'.format(self.client_address[0])
+                print '%s sent:'(self.client_address[0])
                 print data
                 # check for conn-reset/disconnect by peer (on client)
                 if data == 'check':
@@ -111,7 +111,6 @@ class ZBrushServer(object):
                     print 'loaded all objs!'
                     self.request.send('loaded')
 
-        # posibly revert to non static
         @staticmethod
         def zbrush_open(name):
             """open a file with zbrush
