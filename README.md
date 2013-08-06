@@ -8,58 +8,40 @@ Connect Maya with ZBrush via Python
 Install
 =======
 
-zclient
--------
-
-client for sending files to zbrush from maya, includes a gui for setup.
-place in your/maya/install/site-packages/zclient
-
-create a shelf button in maya with:
-```python
-import zclient
-mainwindow=zclient.gui.win()
-```
-this is for the setup GUI
-
-create another shelf button with:
-```python
-mainwindow.execute_shelf()
-```
-this button is for sending to zbrush, after the GUI is setup with IP info
-
-
-zserv
------
-
-python module to receive files from maya and load in zbrush.
-
-copy mclient to `/your/python/install/site-packages/`
-zserv will launch zbrush when loaded, probably better to start ZBrush first.
-zserv also places a GUI in zbrush for sending to maya.
-
-host:port can be passed as commandline arguments:
-```bash
-python -m mclient.zserv 10.10.0.10:6668
-```
-
-mclient
--------
-
-client for sending files to maya from zbrush,
-this is triggered by 2 ui buttons in ZBrush
+- Download a copy of the repo, place in your site packages  
+- Alternativly sym link it to your site-packages folders   
+- Currently this only is tested on OSX/Linux, (FC 18, OSX 10.8.2), (Maya2013,ZBrush 4R4P2)
+- For the stand alone ZBrushServer TkInter might be needed, should work on python 2.7+ 
 
 ```bash
-python -m mclient.zbrush_export file_name tool#
+ln -s /Users/name/GoZ/ /your/python/site-packages/GoZ
+ln -s /USers/name/GoZ/ /maya/default/site-packages/GoZ
+```
+- Create a shelf button in Maya simmilar to:  
+
+```python
+import GoZ.mayagui    
+mayagui=GoZ.mayagui.Win()
 ```
 
-General Setup
-=============
+- Create a 'send' shelf button in Maya:
+
+```python
+mayagui.send()
+```        
+
+- Start ZBrushServer config with: 
+
+```python
+./start_zbrush.py
+```
 
 - Create a folder ZBrush and Maya have acess to (network drive)
-- set up some enviromental variables on each machine:
+- set up the shared  enviromental variable on each machine:
+- set up the desired server/client host/ports in a env var
 
-	```bash
-	export ZDOCS = /path/to/goz_default
-	export MNET your.maya.ip:port
-	export ZNET your.zbrush.up:port
-	```
+```bash
+export ZDOCS = /path/to/goz_default
+export MNET = 127.0.0.1:6667
+export ZNET = 127.0.0.1:6668
+```
