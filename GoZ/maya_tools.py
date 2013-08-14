@@ -1,9 +1,18 @@
 """Maya Server and ZBrush client classes """
 
+import socket
+import errno
+import GoZ.errs as errs
 import GoZ.utils as utils
 import maya.cmds as cmds
 
-
+# nodes marked for removal from maya on import from ZBrush
+GARBAGE_NODES = ['blinn',
+                 'blinnSG',
+                 'materialInfo',
+                 'ZBrushTexture',
+                 'place2dTexture2']
+                      
 class MayaServer(object):
 
     """
@@ -22,9 +31,6 @@ class MayaServer(object):
     methods:
         start(ip,port)                 -- starts maya command port
         stop(ip,port)                  -- stops maya command port
-        load(file)                     -- loads a mesh from zbrush
-        cleanup()                      -- cleans up before file import
-
     """
 
     def __init__(self):
@@ -33,15 +39,6 @@ class MayaServer(object):
         self.cmdport_name = "%s:%s" % (self.host, self.port)
         self.status = False
 
-        self.file_name = None
-        self.file_path = None
-
-        # nodes marked for removal from maya on import from ZBrush
-        self.nodes = ['blinn',
-                      'blinnSG',
-                      'materialInfo',
-                      'ZBrushTexture',
-                      'place2dTexture2']
 
     def start(self):
         """ starts a command port"""
@@ -49,9 +46,6 @@ class MayaServer(object):
         # check network info
         utils.validate_host(self.host)
         utils.validate_port(self.port)
-
-        # write network info back to config file
-        utils.writecfg(self.host, self.port, 'MNET')
 
         self.cmdport_name = "%s:%s" % (self.host, self.port)
         self.status = cmds.commandPort(self.cmdport_name, query=True)
@@ -70,30 +64,30 @@ class MayaServer(object):
                                        query=True)
         print 'closing %s' % self.cmdport_name
 
-    def load(self, file_path):
-        """
-        get file name from file path
-        remove matching nodes
-        import file
-        """
-        self.file_name = utils.split_file_name(file_path)
-        self.file_path = file_path
-        self.cleanup()
-        cmds.file(file_path, i=True,
-                  usingNamespaces=False,
-                  removeDuplicateNetworks=True)
+# Maya-side callbacks
 
-    def cleanup(self):
-        """ removes un-used nodes on import of obj"""
-        name = self.file_name
+def load(file_path):
+    """
+    get file name from file path
+    remove matching nodes
+    import file
+    """
+    file_name = utils.split_file_name(file_path)
+    cleanup(file_name)
+    cmds.file(file_path, i=True,
+              usingNamespaces=False,
+              removeDuplicateNetworks=True)
 
-        if cmds.objExists(name):
-            cmds.delete(name)
+def cleanup(name):
+    """ removes un-used nodes on import of obj"""
 
-        for node in self.nodes:
-            node = name + '_' + node
-            if cmds.objExists(node):
-                cmds.delete(node)
+    if cmds.objExists(name):
+        cmds.delete(name)
+
+    for node in GARBAGE_NODES:
+        node = name + '_' + node
+        if cmds.objExists(node):
+            cmds.delete(node)
 
 
 class ZBrushClient(object):
@@ -148,20 +142,16 @@ class ZBrushClient(object):
         utils.validate_host(self.host)
         utils.validate_port(self.port)
 
-        # place new network settings back in ENVs and cfg file
-        utils.writecfg(self.host, self.port, 'ZNET')
-
-        self.sock = utils.socket.socket(
-            utils.socket.AF_INET, utils.socket.SOCK_STREAM)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # time out incase of a bad host/port that actually exists
         self.sock.settimeout(45)
 
         try:
             self.sock.connect((self.host, int(self.port)))
-        except utils.socket.error as err:
+        except socket.error as err:
             self.status = False
-            if utils.errno.ECONNREFUSED in err:
-                raise utils.errs.ZBrushServerError(
+            if errno.ECONNREFUSED in err:
+                raise errs.ZBrushServerError(
                     'Connection Refused: %s:%s' % (self.host, self.port))
 
         self.status = True
@@ -184,18 +174,18 @@ class ZBrushClient(object):
                 self.sock = None
                 print 'conn reset!'
 
-        except utils.socket.error as err:
+        except socket.error as err:
             # catches server down errors, resets socket
             self.status = False
             self.sock.close()
             self.sock = None
-            if utils.errno.ECONNREFUSED in err:
+            if errno.ECONNREFUSED in err:
                 print 'conn ref'
                 # server probbly down
-            if utils.errno.EADDRINUSE in err:
+            if errno.EADDRINUSE in err:
                 # this is fine
                 print 'already connected...'
-            if utils.errno.EPIPE in err:
+            if errno.EPIPE in err:
                 # server down, or unexpected connection interuption
                 print 'broken pipe, trying to reconnect'
         except AttributeError:
@@ -211,7 +201,7 @@ class ZBrushClient(object):
             # check receipt of objs
             self.load_confirm()
         else:
-            raise utils.errs.ZBrushServerError(
+            raise errs.ZBrushServerError(
                 'Please connect to ZBrushServer first')
 
     def load_confirm(self):
@@ -223,7 +213,7 @@ class ZBrushClient(object):
             self.status = False
             self.sock = None
             print 'ZBrushServer is down!'
-            raise utils.errs.ZBrushServerError('ZBrushServer is down!')
+            raise errs.ZBrushServerError('ZBrushServer is down!')
 
     def export(self):
         """ save some files """
@@ -251,6 +241,9 @@ class ZBrushClient(object):
             xforms = cmds.listRelatives(
                 self.objs, parent=True, fullPath=True)
             # print xforms
+            # FIXME: i don't get it. we clear selection, then select xforms, 
+            # then get the list AGAIN from ls (which should be the same as xforms), then select them AGAIN...
+            # couldn't we just pass xforms to makeIdentity?
             cmds.select(cl=True)
             cmds.select(xforms)
             self.objs = cmds.ls(selection=True)
@@ -274,6 +267,8 @@ class ZBrushClient(object):
             if goz_check:
                 goz_id = cmds.getAttr(obj + '.GoZBrushID')
                 if obj != goz_id:
+                    # FIXME: what is the GoZBrushID? why are we only saving it for mismatches? 
+                    # and what happens if there is more than one mismatch in self.objs?  self.goz_obj and self.goz_id get overwritten...
                     self.goz_obj = obj
                     self.goz_id = goz_id
                     print obj, goz_id, 'name mismatch'

@@ -4,7 +4,6 @@ Utilities for managing validation and enviromental variables
 constants:
     SHARED_DIR_ENV  -- ZDOCS default file path, /some/path/goz_default
     DEFAULT_NET     -- Contains fallbacks for host/port (local)
-    CFG             -- python config file with host/port info
 
 methods:
     validate        -- validates host and port
@@ -17,8 +16,6 @@ methods:
                        takes a gui/logger function
     get_net_info    -- takes a env varaible to look for
                        returns host/port
-    read_cfg        -- looks in defaults.cfg for host/port info
-
 """
 
 import os
@@ -26,17 +23,17 @@ import socket
 from . import errs
 from contextlib import contextmanager
 import sys
-from threading import Thread
 import ConfigParser
 import errno
 
 SHARED_DIR_ENV = 'ZDOCS'
-CFG = 'defaults.cfg'
+# FIXME: provide default for windows
+SHARED_DIR_DEFAULT = '/Users/Shared/Pixologic/GoZProjects'
 
 MAYA_ENV = 'MNET'
 ZBRUSH_ENV = 'ZNET'
 
-DEFAULT_NET = {MAYA_ENV: '127.0.0.1:6667', ZBRUSH_ENV: '127.0.0.1:6668'}
+DEFAULT_NET = {MAYA_ENV: 'localhost:6667', ZBRUSH_ENV: 'localhost:6668'}
 
 
 @contextmanager
@@ -69,13 +66,16 @@ def validate_port(port):
 
 def validate_host(host):
     """ pings host, also trys to resolve hostname if a computer name is used """
+    # FIXME: not convinced that pinging the machine is a good choice. it's definitely not needed for localhost
     route = os.system("ping -t 2 -c 1 " + host)
 
     if route != 0:
-        raise errs.IpError(host, 'Please specify a valid host: %s' % (host))
+        raise errs.IpError(host, 'Could not ping host: %s' % (host))
 
     try:
+        # FIXME: i don't think there is any point in converting to ip address.  socket.connect seems to handle machine names just fine and this is preferable since it is more human readable
         host = socket.gethostbyname(host)
+        # FIXME: i don't think this line is doing anything. the previous line will error on an invalid name or malformed ip
         socket.inet_aton(host)
     except socket.error:
         raise errs.IpError(host, 'Please specify a valid host: %s' % (host))
@@ -93,39 +93,6 @@ def validate(net_string):
     return (host, port)
 
 
-def read_cfg(net_env):
-    """ read defaults.cfg and try to return the host/port """
-
-    cfg_path = os.path.dirname(os.path.abspath(__file__))
-    cfg_path = os.path.join(cfg_path, CFG)
-    config = ConfigParser.ConfigParser()
-    config.read(cfg_path)
-    try:
-        return config.get('GoZ', net_env)
-    except ConfigParser.NoSectionError:
-        return
-
-
-def writecfg(host, port, key):
-    """
-    stores any changes in the GUI to defaults.cfg
-    also stores cahnges in env vars (current process)
-    """
-
-    os.environ[key] = '%s:%s' % (host, port)
-
-    cfg_path = os.path.dirname(os.path.abspath(__file__))
-    cfg_path = os.path.join(cfg_path, 'defaults.cfg')
-
-    config = ConfigParser.ConfigParser()
-    config.read(cfg_path)
-    host, port = str(host), str(port)
-    config.set('GoZ', str(key), '%s:%s' % (host, port))
-
-    with open(cfg_path, 'wb') as configfile:
-        config.write(configfile)
-
-
 def get_net_info(net_env):
     """
     check for enviromental variabels, places them in defaults.cfg
@@ -139,23 +106,20 @@ def get_net_info(net_env):
     cfg might be removed, it is useful if env vars are not set globally
     """
 
-    net_string = os.environ.get(net_env)
+    # check the shared dir first. it could force us into local mode
+    shared_dir = os.getenv(SHARED_DIR_ENV)
+    if shared_dir is None:
+        # if no shared directory is set, we MUST operate in local mode
+        print "No shared directory set. Defaulting to local mode"
+        os.environ[SHARED_DIR_ENV] = SHARED_DIR_DEFAULT
+    elif shared_dir == SHARED_DIR_DEFAULT
+        pass
+    else:
+        net_string = os.environ.get(net_env)
 
-    if net_string:
-        host, port = validate(net_string)
-        writecfg(host, port, net_env)
-
-    # env vars failed defaults to defaults.cfg
-    net_string = read_cfg(net_env)
-
-    if net_string:
-        print net_string
-        try:
-            validate(net_string)
-        except:
-            pass
-        else:
-            return validate(net_string)
+        if net_string:
+            host, port = validate(net_string)
+            return host, port
 
     # finally default to local mode
     net_string = DEFAULT_NET[net_env]
@@ -171,21 +135,14 @@ def split_file_name(file_path):
 
     return file_name
 
-
 def make_file_name(name):
     """ makes a full resolved file path for zbrush """
-    name = os.path.relpath(name + '.ma')
-    env_path = os.path.join('$' + SHARED_DIR_ENV, name)
-    expanded_path = os.path.expandvars(env_path)
+    expanded_path = os.path.expandvars(make_fp_rel(name))
     return expanded_path
 
-
 def make_fp_rel(name):
-
     name = os.path.relpath(name + '.ma')
-    env_path = os.path.join('$' + SHARED_DIR_ENV, name)
-    return env_path
-
+    return os.path.join('$' + SHARED_DIR_ENV, name)
 
 def send_osa(script_path):
     """ sends a zscript file for zbrush to open """
@@ -197,7 +154,6 @@ def send_osa(script_path):
     cmd = ' '.join(cmd)
     print cmd
     os.system(cmd)
-
 
 def open_osa():
     """ opens zbrush """
