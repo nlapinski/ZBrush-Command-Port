@@ -27,8 +27,12 @@ import ConfigParser
 import errno
 
 SHARED_DIR_ENV = 'ZDOCS'
-# FIXME: provide default for windows
-SHARED_DIR_DEFAULT = '/Users/Shared/Pixologic/GoZProjects'
+
+
+SHARED_DIR_DEFAULT_OSX = '/Users/Shared/Pixologic/GoZProjects'
+SHARED_DIR_DEFAULT_WIN = 'C:\\Users\\Public\\Pixologic\\GoZProjects'
+
+OS = sys.platform
 
 MAYA_ENV = 'MNET'
 ZBRUSH_ENV = 'ZNET'
@@ -66,17 +70,9 @@ def validate_port(port):
 
 def validate_host(host):
     """ pings host, also trys to resolve hostname if a computer name is used """
-    # FIXME: not convinced that pinging the machine is a good choice. it's definitely not needed for localhost
-    route = os.system("ping -t 2 -c 1 " + host)
-
-    if route != 0:
-        raise errs.IpError(host, 'Could not ping host: %s' % (host))
 
     try:
-        # FIXME: i don't think there is any point in converting to ip address.  socket.connect seems to handle machine names just fine and this is preferable since it is more human readable
         host = socket.gethostbyname(host)
-        # FIXME: i don't think this line is doing anything. the previous line will error on an invalid name or malformed ip
-        socket.inet_aton(host)
     except socket.error:
         raise errs.IpError(host, 'Please specify a valid host: %s' % (host))
 
@@ -84,10 +80,15 @@ def validate_host(host):
 def validate(net_string):
     """
     runs host/port validation on a string
-    in xx.xx.xx.xx:xxxx format (host:port)
     """
 
+    print net_string
+
     host, port = net_string.split(':')
+
+    if host == 'localhost':
+        return ('',port)
+
     validate_host(host)
     validate_port(port)
     return (host, port)
@@ -102,8 +103,6 @@ def get_net_info(net_env):
 
     check should be added to verify if a host/port can be served on
 
-    check env vars (MNET/ZNET), write to cfg
-    cfg might be removed, it is useful if env vars are not set globally
     """
 
     # check the shared dir first. it could force us into local mode
@@ -111,9 +110,12 @@ def get_net_info(net_env):
     if shared_dir is None:
         # if no shared directory is set, we MUST operate in local mode
         print "No shared directory set. Defaulting to local mode"
-        os.environ[SHARED_DIR_ENV] = SHARED_DIR_DEFAULT
-    elif shared_dir == SHARED_DIR_DEFAULT
-        pass
+        if OS == 'darwin':
+            print "working on OSX"
+            os.environ[SHARED_DIR_ENV] = SHARED_DIR_DEFAULT_OSX
+        elif OS == 'win32' or OS == 'win64':
+            print "working on Windows"
+            os.environ[SHARED_DIR_ENV] = SHARED_DIR_DEFAULT_WIN
     else:
         net_string = os.environ.get(net_env)
 

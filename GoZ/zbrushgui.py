@@ -3,7 +3,7 @@
 from GoZ import zbrush_tools as zbrush_tools
 import Tkinter
 import tkMessageBox
-
+import GoZ.utils as utils
 
 class ZBrushGUI(object):
 

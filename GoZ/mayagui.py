@@ -116,10 +116,17 @@ class Win(object):
         if self.client.parse_objs():
             # check for any GoZBrushIDs, and relink/create
             for obj, goz_id in self.client.goz_check():
-                # FIXME: when would `obj` NOT be in `self.client.objs`? the result from goz_check() is just a filtering of `self.client.objs`...
+                # relinked objs are removed from self.client.objs
+                # this prevents relinking 2 previous tool histories
+                # it stops relinking after the 1st match/relink
+                # so pSphere1 contains both meshes, but pSphere2 still exists
+                # this prevents overwriting 2 zbrush tools with the same obj
+
+                # the 'skip' option during in the relink gui keeps the obj to look
+                # for an alternative history, for example relink the 2nd obj history
+                # if skip fails to relink, it will default to 'create'
+
                 if obj in self.client.objs:
-                    # clean this up
-                    # FIXME: isn't this already done by self.client.goz_check()?
                     self.client.goz_id = goz_id
                     self.client.goz_obj = obj
                     self.rename_gui()
@@ -157,7 +164,11 @@ class Win(object):
         then revises objlist
         """
         gui_message = """%s has a old ZBrush ID, of %s, try to relink?
-                        """ % (self.client.goz_obj, self.client.goz_id)
+
+                        NOTE! relinking will 
+                        remove objects named "%s"
+                        selected mesh as the new one!!
+                        """ % (self.client.goz_obj, self.client.goz_id,self.client.goz_id)
 
         choice = confirmDialog(title="ZBrush Name Conflict",
                                message=gui_message,
@@ -165,10 +176,12 @@ class Win(object):
         if 'Relink' in choice:
             # relink to past GoZBrushID
             self.client.relink()
+            #remove any corrected IDs from list
             self.client.parse_objs()
         if 'Create' in choice:
             # new object for zbrush
             self.client.create()
+            #remove any corrected IDs from list
             self.client.parse_objs()
             print 'time make a new one'
 

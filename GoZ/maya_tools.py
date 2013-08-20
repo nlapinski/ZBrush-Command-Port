@@ -237,25 +237,28 @@ class ZBrushClient(object):
         """ grab meshes from selection, needs some revision """
         self.objs = cmds.ls(selection=True, type='mesh', dag=True)
         if self.objs:
-
             xforms = cmds.listRelatives(
                 self.objs, parent=True, fullPath=True)
-            # print xforms
-            # FIXME: i don't get it. we clear selection, then select xforms, 
-            # then get the list AGAIN from ls (which should be the same as xforms), then select them AGAIN...
-            # couldn't we just pass xforms to makeIdentity?
-            cmds.select(cl=True)
+            #freeze transform
+            cmds.makeIdentity(xforms,apply=True, t=1, r=1, s=1, n=0)
             cmds.select(xforms)
             self.objs = cmds.ls(selection=True)
-            print self.objs
-            cmds.select(self.objs)
-            cmds.makeIdentity(apply=True, t=1, r=1, s=1, n=0)
             return True
         else:
             return False
 
     def goz_check(self):
-        """ creates a list of objects with GoZBrushID in history """
+        """ 
+        creates a list of objects with GoZBrushID in history
+        
+        GoZBrushID is created by ZBrush on export and is used to track
+        name changes that can occur in maya
+
+        this function compares object current name against the ID
+
+        this list is handled by the gui to allow for dialog boxes
+        
+        """
 
         goz_list = []
 
@@ -265,15 +268,12 @@ class ZBrushClient(object):
                 'GoZBrushID', node=obj, exists=True)
 
             if goz_check:
+                # check for 'rename'
                 goz_id = cmds.getAttr(obj + '.GoZBrushID')
                 if obj != goz_id:
-                    # FIXME: what is the GoZBrushID? why are we only saving it for mismatches? 
-                    # and what happens if there is more than one mismatch in self.objs?  self.goz_obj and self.goz_id get overwritten...
-                    self.goz_obj = obj
-                    self.goz_id = goz_id
-                    print obj, goz_id, 'name mismatch'
                     goz_list.append((obj, goz_id))
             else:
+                # check for old ID in history
                 history = cmds.listHistory(obj)
                 for old_obj in history:
                     goz_check = cmds.attributeQuery('GoZBrushID',
@@ -282,11 +282,9 @@ class ZBrushClient(object):
                     if goz_check:
                         goz_id = cmds.getAttr(old_obj + '.GoZBrushID')
                         if obj != goz_id:
-                            print obj, goz_id, 'name mismatch'
-                            self.goz_obj = obj
-                            self.goz_id = goz_id
                             goz_list.append((obj, goz_id))
 
+        #resulting mismatches to be handled
         return goz_list
 
     def relink(self):
@@ -297,8 +295,16 @@ class ZBrushClient(object):
         # manages re linking GoZBrush IDs, checks for attribute on shape/xform
         obj = self.goz_obj
         goz_id = self.goz_id
+
         pre_sel = cmds.ls(sl=True)
         cmds.delete(obj, ch=True)
+
+        # in the case of a object being duplicated this removes the duplicate
+        # to prevent deletion, the 'create' option is prefered
+        # is only happens when an object was duplicated and merged (original still exists)
+        if cmds.objExists(goz_id):
+            cmds.delete(goz_id)
+
         cmds.rename(obj, goz_id)
         cmds.select(cl=True)
         cmds.select(goz_id)
