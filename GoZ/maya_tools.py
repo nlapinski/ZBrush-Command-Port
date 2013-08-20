@@ -5,6 +5,8 @@ import errno
 import GoZ.errs as errs
 import GoZ.utils as utils
 import maya.cmds as cmds
+import os.chmod
+import stat
 
 # nodes marked for removal from maya on import from ZBrush
 GARBAGE_NODES = ['blinn',
@@ -232,6 +234,7 @@ class ZBrushClient(object):
                       options="v=0",
                       type="mayaAscii",
                       exportSelected=True)
+            os.chmod(self.ascii_path, stat.S_IXOTH | stat.S_IWOTH | stat.S_IROTH)
 
     def parse_objs(self):
         """ grab meshes from selection, needs some revision """

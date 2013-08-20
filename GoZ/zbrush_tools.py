@@ -1,5 +1,5 @@
 """ starts ZBrushSever, manages MayaClient"""
-
+#!/usr/bin/python
 import os
 import socket
 import SocketServer
