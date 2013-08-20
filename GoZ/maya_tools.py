@@ -5,7 +5,7 @@ import errno
 import GoZ.errs as errs
 import GoZ.utils as utils
 import maya.cmds as cmds
-import os.chmod
+import os
 import stat
 
 # nodes marked for removal from maya on import from ZBrush
