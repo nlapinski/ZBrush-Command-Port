@@ -49,7 +49,6 @@ class Win(object):
         self.user_zbrush_host = None
         self.user_zbrush_port = None
         self.listen_btn = None
-        self.user_maya_host = None
         self.user_maya_port = None
         self.maya_status_ui = None
         self.conn_btn = None
@@ -72,7 +71,6 @@ class Win(object):
         self.client.host = self.user_zbrush_host.getText()
         self.client.port = self.user_zbrush_port.getText()
 
-        self.serv.host = self.user_maya_host.getText()
         self.serv.port = self.user_maya_port.getText()
 
     def connect(self, *args):
@@ -211,9 +209,6 @@ class Win(object):
                                      backgroundColor=(1.0, 0.0, 0.0))
         self.spacer(2)
         separator(style='double', height=30)
-        self.spacer(1)
-        text(label='Maya IP')
-        self.user_maya_host = textField(text=self.serv.host)
         self.spacer(1)
         text(label='Maya PORT')
         self.user_maya_port = textField(text=self.serv.port)
