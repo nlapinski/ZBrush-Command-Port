@@ -115,12 +115,13 @@ class Win(object):
         # construct list of selection, filter meshes
         if self.client.parse_objs():
             # check for any GoZBrushIDs, and relink/create
-            goz_result = self.client.goz_check()
-            for obj in goz_result:
-                if obj[0] in self.client.objs:
+            for obj, goz_id in self.client.goz_check():
+                # FIXME: when would `obj` NOT be in `self.client.objs`? the result from goz_check() is just a filtering of `self.client.objs`...
+                if obj in self.client.objs:
                     # clean this up
-                    self.client.goz_id = obj[1]
-                    self.client.goz_obj = obj[0]
+                    # FIXME: isn't this already done by self.client.goz_check()?
+                    self.client.goz_id = goz_id
+                    self.client.goz_obj = obj
                     self.rename_gui()
             with maya_tools.utils.err_handler(self.error_gui):
                 self.client.send()

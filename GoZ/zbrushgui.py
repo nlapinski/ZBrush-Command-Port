@@ -24,9 +24,11 @@ class ZBrushGUI(object):
     """
 
     def __init__(self):
-
-        self.serv = zbrush_tools.ZBrushServer()
-        self.client = zbrush_tools.MayaClient()
+        zhost, zport = utils.get_net_info('ZNET')
+        mhost, mport = utils.get_net_info('MNET')
+        
+        self.serv = zbrush_tools.ZBrushServer(zhost, zport)
+        self.client = zbrush_tools.MayaClient(mhost, mport)
         self.maya_status_ui = None
         self.maya_host_ui = None
         self.zbrush_port_ui = None
@@ -51,13 +53,13 @@ class ZBrushGUI(object):
             self.serv.start()
 
         if self.serv.status:
-            status_line = 'ZBrushServer Status: %s:%s' % (
+            status_line = 'ZBrush Server Status: %s:%s' % (
                 self.serv.host, self.serv.port)
 
             self.zbrush_status_ui.config(text=status_line, background='green')
         else:
             self.zbrush_status_ui.config(
-                text='ZBrushServer Status: down',
+                text='ZBrush Server Status: down',
                 background='red')
 
     def serv_stop(self):
@@ -65,7 +67,7 @@ class ZBrushGUI(object):
 
         self.serv.stop()
         self.zbrush_status_ui.config(
-            text='ZBrushServer Status: down',
+            text='ZBrush Server Status: down',
             background='red')
 
     def zscript_ui(self):
@@ -133,18 +135,16 @@ class ZBrushGUI(object):
 
         Tkinter.Button(
             zb_cfg,
-            text='Start ZBrushServer',
-            command=self.serv_start).pack(
-            )
+            text='Start',
+            command=self.serv_start).pack()
         Tkinter.Button(
             zb_cfg,
-            text='Stop ZBrushServer',
-            command=self.serv_stop).pack(
-            )
+            text='Stop',
+            command=self.serv_stop).pack()
 
         self.zbrush_status_ui = Tkinter.Label(
             zb_cfg,
-            text='ZBrushServer Status: down',
+            text='ZBrush Server Status: down',
             background='red')
         self.zbrush_status_ui.pack(pady=5, padx=5)
 
@@ -168,11 +168,10 @@ class ZBrushGUI(object):
         Tkinter.Button(
             maya_cfg,
             text='Test Connection',
-            command=self.test_client).pack(
-            )
+            command=self.test_client).pack()
         self.maya_status_ui = Tkinter.Label(
             maya_cfg,
-            text='MayaClient Status: conn refused',
+            text='Maya Client Status: conn refused',
             background='red')
         self.maya_status_ui.pack(pady=5, padx=5)
 
