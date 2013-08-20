@@ -29,13 +29,14 @@ class ZBrushGUI(object):
         
         self.serv = zbrush_tools.ZBrushServer(zhost, zport)
         self.client = zbrush_tools.MayaClient(mhost, mport)
+        
         self.maya_status_ui = None
         self.maya_host_ui = None
-        self.zbrush_port_ui = None
         self.maya_port_ui = None
+
+        self.zbrush_port_ui = None 
         self.zbrush_status_ui = None
         self.win = None
-        self.zbrush_host_ui = None
 
         self.build()
         self.serv_start()
@@ -46,7 +47,6 @@ class ZBrushGUI(object):
     def serv_start(self):
         """start sever command """
 
-        self.serv.host = self.zbrush_host_ui.get()
         self.serv.port = self.zbrush_port_ui.get()
 
         with zbrush_tools.utils.err_handler(self.error_gui):
@@ -124,10 +124,6 @@ class ZBrushGUI(object):
         zb_cfg = Tkinter.LabelFrame(self.win, text="ZBrush Server")
         zb_cfg.pack(pady=15, fill="both", expand="yes")
 
-        Tkinter.Label(zb_cfg, text='ZBrush Host:').pack(pady=5, padx=5)
-        self.zbrush_host_ui = Tkinter.Entry(zb_cfg, width=15)
-        self.zbrush_host_ui.pack()
-        self.zbrush_host_ui.insert(0, self.serv.host)
         Tkinter.Label(zb_cfg, text='ZBrush Port:').pack(pady=5, padx=5)
         self.zbrush_port_ui = Tkinter.Entry(zb_cfg, width=15)
         self.zbrush_port_ui.pack()

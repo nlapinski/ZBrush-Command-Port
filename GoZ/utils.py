@@ -37,7 +37,9 @@ OS = sys.platform
 MAYA_ENV = 'MNET'
 ZBRUSH_ENV = 'ZNET'
 
-DEFAULT_NET = {MAYA_ENV: 'localhost:6667', ZBRUSH_ENV: 'localhost:6668'}
+# local mode is replace with and empty string, starts a port on external IP
+
+DEFAULT_NET = {MAYA_ENV: 'localmode:6667', ZBRUSH_ENV: 'localmode:6668'}
 
 
 @contextmanager
@@ -76,6 +78,11 @@ def validate_host(host):
     except socket.error:
         raise errs.IpError(host, 'Please specify a valid host: %s' % (host))
 
+def server_host():
+
+    host = socket.gethostname()
+    return host
+
 
 def validate(net_string):
     """
@@ -86,7 +93,7 @@ def validate(net_string):
 
     host, port = net_string.split(':')
 
-    if host == 'localhost':
+    if host == 'localmode':
         return ('',port)
 
     validate_host(host)
