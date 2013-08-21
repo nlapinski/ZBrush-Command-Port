@@ -156,7 +156,15 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
                 //set all subtools low to preserver sub-d
                 [IPress, Tool:SubTool:All Low]
 
-                [ToolSelect, #PARENT]
+
+                //checks to see if mesh has a 'parent' or is a new mesh
+                //meshes with parents will be appended correctly 
+                //as sub tools to the original base tool
+                [If, #PARENT == 0, 
+                    [ToolSelect, [ToolGetActiveIndex]]
+                    ,
+                    [ToolSelect, #PARENT]
+                ]
 
                 //import tool name, #TOOLNAME is replace with the .ma file name
                 // this is the same as the object name in maya
@@ -323,11 +331,17 @@ class MayaClient(object):
             //finally export the tool
             [IPress,Tool:Export]
 
+            //get base tool
+            [SubToolSelect,0]
+            [VarSet, base_tool, [ToolGetActiveIndex]]
+
+
+
             //trigger the python module to send maya the load commands
             [ShellExecute,
                 //merge the python command with the tool name
                 [StrMerge, #module_path,
-                        #tool_name
+                        #tool_name, " ",#base_tool
                 ]
             ]
         ]
@@ -390,9 +404,15 @@ class MayaClient(object):
 
                 //finally export
                 [IPress,Tool:Export]
+
+
+                //get base tool
+                [SubToolSelect,0]
+                [VarSet, base_tool, [ToolGetActiveIndex]]
+
                 [ShellExecute,
                     //join module_path tool_name for maya to load
-                    [StrMerge, #module_path, #tool_name]
+                    [StrMerge, #module_path, #tool_name, " ",#base_tool]
                 ]
             ]
         ]
