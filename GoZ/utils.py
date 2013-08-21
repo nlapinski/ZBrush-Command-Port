@@ -20,11 +20,12 @@ methods:
 
 import os
 import socket
-from . import errs
+from GoZ import errs
 from contextlib import contextmanager
 import sys
 import ConfigParser
 import errno
+import time
 
 SHARED_DIR_ENV = 'ZDOCS'
 
@@ -167,10 +168,27 @@ def send_osa(script_path):
 def open_osa():
     """ opens zbrush """
 
-    cmd = "osascript -e 'tell app \"ZBrush\" to launch'"
-    print cmd
-    os.system(cmd)
+    # blocks untill ZBrush is ready for addional commands
+    # makes sure ZBrush is ready to install the GUI
 
-    cmd = "osascript -e 'tell app \"ZBrush\" to activate'"
-    print cmd
-    os.system(cmd)
+    #launches ZBrush
+    #loop to check if ZBrush is 'ready'
+    #brings ZBrush to front/focus
+    #clears any crash messages 
+
+    osa = "osascript "\
+    +"-e 'tell application \"ZBrush\" to launch' "\
+    +"-e 'tell application \"System Events\"' "\
+    +"-e 'repeat until visible of process \"ZBrushOSX\" is false' "\
+    +"-e 'set visible of process \"ZBrushOSX\" to false' "\
+    +"-e 'end repeat' "\
+    +"-e 'end tell' "\
+    +"-e 'tell application \"System Events\"' "\
+    +"-e 'tell application process \"ZBrushOSX\"' "\
+    +"-e 'set frontmost to true' "\
+    +"-e 'keystroke return' "\
+    +"-e 'end tell' "\
+    +"-e 'end tell'"
+    
+    print osa
+    os.system(osa)

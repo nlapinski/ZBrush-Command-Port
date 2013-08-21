@@ -280,6 +280,16 @@ class MayaClient(object):
         # zscript to create the 'send' button
         zscript = """
         [RoutineDef, send_file,
+            
+            //check if in edit mode
+            [VarSet, ui,[IExists,Tool:SubTool:All Low]]
+
+            //if no open tool make a new tool
+            [If, ui == 0,
+            [IPress,Tool:PolyMesh3D]
+            [IPress,Tool:Make PolyMesh3D]
+            ,]
+            
             //set lowest subtool resolution
             [IPress, Tool:SubTool:All Low]
 
@@ -325,6 +335,15 @@ class MayaClient(object):
         # zscript to create the 'send -all' button
         zscript += """
         [RoutineDef, send_all,
+
+            //check if in edit mode
+            [VarSet, ui,[IExists,Tool:SubTool:All Low]]
+
+            //if no open tool make a new tool
+            [If, ui == 0,
+            [IPress,Tool:PolyMesh3D]
+            [IPress,Tool:Make PolyMesh3D]
+            ,]
 
             //set all tools to lowest sub-d
             [IPress, Tool:SubTool:All Low]
