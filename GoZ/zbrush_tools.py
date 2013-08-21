@@ -351,7 +351,7 @@ class MayaClient(object):
             //iterator variable
             [VarSet,t,0]
 
-            //start at the first subtoo
+            //start at the first subtool
             [SubToolSelect,0]
 
             //iterate through all subtools
@@ -430,8 +430,9 @@ class MayaClient(object):
             return True
 
     @staticmethod
-    def send(obj_name):
+    def send(obj_name,parent_name):
         """ sends a file to maya"""
+        print 'Parent tool: '+parent_name
 
         # construct file read path for maya, uses SHARED_DIR_ENV
         # make realative path
@@ -441,7 +442,7 @@ class MayaClient(object):
 
 
         # previous import was not looking inside of GoZ package
-        maya_cmd = 'from GoZ import maya_tools;maya_tools.load("' + file_path +'")'
+        maya_cmd = 'from GoZ import maya_tools;maya_tools.load("' + file_path,obj_name,parent_name +'")'
 
         maya = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         host, port = utils.get_net_info('MNET')
@@ -457,4 +458,4 @@ if __name__ == "__main__":
     import sys
     # send to maya/save from zbrush
     # arg 1: object name ie: pSphere1
-    MayaClient.send(sys.argv[1])
+    MayaClient.send(sys.argv[1],sys.argv[2])

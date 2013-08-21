@@ -67,7 +67,7 @@ class MayaServer(object):
 
 # Maya-side callbacks
 
-def load(file_path):
+def load(file_path, obj_name, parent_name):
     """
     get file name from file path
     remove matching nodes
@@ -78,6 +78,8 @@ def load(file_path):
     cmds.file(file_path, i=True,
               usingNamespaces=False,
               removeDuplicateNetworks=True)
+    cmds.addAttr(obj_name, longName='GoZParent', dataType='string')
+    cmds.setAttr(obj_name + '.GoZParent', parent_name, type='string')
 
 def cleanup(name):
     """ removes un-used nodes on import of obj"""

@@ -29,7 +29,7 @@ import time
 
 SHARED_DIR_ENV = 'ZDOCS'
 
-
+#currently only OSX is supported due to apple script
 SHARED_DIR_DEFAULT_OSX = '/Users/Shared/Pixologic/GoZProjects'
 SHARED_DIR_DEFAULT_WIN = 'C:\\Users\\Public\\Pixologic\\GoZProjects'
 
