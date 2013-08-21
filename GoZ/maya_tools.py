@@ -223,7 +223,10 @@ class ZBrushClient(object):
 
         print self.objs
 
-        for obj in self.objs:
+        #default pm3d star
+        parent = 41
+
+        for idx, obj in enumerate(self.objs):
 
             cmds.select(cl=True)
             cmds.select(obj)
@@ -234,8 +237,11 @@ class ZBrushClient(object):
                       options="v=0",
                       type="mayaAscii",
                       exportSelected=True)
-            parent = cmds.getAttr(obj+'.GoZParent')
-            obj = obj+'#'+parent
+            if cmds.attributeQuery('GoZParent',node=obj,exists=True):
+                parent = cmds.getAttr(obj+'.GoZParent')
+            else:
+                parent = 0
+            self.objs[idx] = obj+'#'+parent
 
             os.chmod(self.ascii_path, 0777)
 

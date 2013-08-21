@@ -102,6 +102,7 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
 
             # parse object list from maya
             if data.split('|')[0] == 'open':
+                print data
                 objs = data.split('|')[1].split(':')
                 for obj in objs:
                     print 'got: ' + obj
