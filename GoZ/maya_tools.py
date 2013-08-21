@@ -234,6 +234,8 @@ class ZBrushClient(object):
                       options="v=0",
                       type="mayaAscii",
                       exportSelected=True)
+            parent = cmds.getAttr(obj+'.GoZParent')
+            obj = obj+'#'+parent
 
             os.chmod(self.ascii_path, 0777)
 

@@ -105,14 +105,16 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
                 objs = data.split('|')[1].split(':')
                 for obj in objs:
                     print 'got: ' + obj
-                    zs_temp = self.zbrush_open(obj + '.ma')
+                    parent = obj.split('#')[1]
+                    obj = obj.split('#')[0]
+                    zs_temp = self.zbrush_open(obj + '.ma',parent)
                     utils.send_osa(zs_temp)
                 print 'loaded all objs!'
                 self.request.send('loaded')
 
 
     @staticmethod
-    def zbrush_open(name):
+    def zbrush_open(name,parent):
         """open a file with zbrush
         -create temp zscript file
         -load with file open commands
@@ -152,6 +154,8 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
 
                 //set all subtools low to preserver sub-d
                 [IPress, Tool:SubTool:All Low]
+
+                [ToolSelect, #PARENT]
 
                 //import tool name, #TOOLNAME is replace with the .ma file name
                 // this is the same as the object name in maya
@@ -239,6 +243,7 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
         zscript = zscript.replace(
             '#FILENAME', os.path.join(env, name))
         zscript = zscript.replace('#TOOLNAME', name.replace('.ma', ''))
+        zscript = zscript.replace('#PARENT',parent)
         zs_temp.write(zscript)
         return zs_temp.name
 
@@ -442,7 +447,9 @@ class MayaClient(object):
 
 
         # previous import was not looking inside of GoZ package
-        maya_cmd = 'from GoZ import maya_tools;maya_tools.load("' + file_path,obj_name,parent_name +'")'
+        maya_cmd = 'from GoZ import maya_tools;maya_tools.load("' + file_path+'","'+obj_name+'","'+parent_name +'")'
+
+        print maya_cmd
 
         maya = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         host, port = utils.get_net_info('MNET')
