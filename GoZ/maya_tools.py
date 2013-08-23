@@ -258,6 +258,8 @@ class ZBrushClient(object):
                 # append all future objects as sub tools
                 new_objects.append(obj)
                 parent = new_objects[0]
+                cmds.addAttr(obj, longName='GoZParent', dataType='string')
+                cmds.setAttr(obj + '.GoZParent', parent, type='string')
             self.objs[idx] = obj+'#'+parent
 
             os.chmod(self.ascii_path, 0777)
