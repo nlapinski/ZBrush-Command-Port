@@ -237,6 +237,8 @@ class ZBrushClient(object):
 
         #default pm3d star
 
+        new_objects = []
+
         for idx, obj in enumerate(self.objs):
 
             cmds.select(cl=True)
@@ -249,9 +251,13 @@ class ZBrushClient(object):
                       type="mayaAscii",
                       exportSelected=True)
             if cmds.attributeQuery('GoZParent',node=obj,exists=True):
+                #object existed in zbrush, has 'parent' tool
                 parent = cmds.getAttr(obj+'.GoZParent')
             else:
-                parent = '0'
+                # construct a list of objects to create
+                # append all future objects as sub tools
+                new_objects.append(obj)
+                parent = new_objects[0]
             self.objs[idx] = obj+'#'+parent
 
             os.chmod(self.ascii_path, 0777)

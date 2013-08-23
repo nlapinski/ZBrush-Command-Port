@@ -197,28 +197,30 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
                     
                     //shuts off interface update
                     [IFreeze,
-                    
+
                     [Loop, #count,
                         //increment current tool
                         [VarSet, a, a+1]
                         
                         //select tool to look for matches
                         [ToolSelect, #a]
+                        [SubToolSelect,0]
                         
                         //check for matching tool
                         //looks in the interface/UI
-                        [VarSet, uiResult, [IExists,Tool:SubTool:#PARENT]]
+                        [VarSet, uiResult, [IExists,Tool:#PARENT]]
                        
                         [If, #uiResult == 1,
-                            [VarSet, makeTool,1]
+                            [IPress, Tool:#PARENT]
+                            [VarSet, makeTool,0]
                             [LoopExit] 
                         ,
+                            [VarSet,makeTool,1]
 
                         ]
                     ]
-                    ]
                     //check to see if found or needs a new blank mesh
-                    [If, #makeTool==0,
+                    [If, #makeTool==1,
                     //make a blank PolyMesh3D
                     [ToolSelect, 41]
                     [IPress,Tool:Make PolyMesh3D]
@@ -229,6 +231,7 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
 
                     [RoutineCall, findSubTool]
                     
+                    ]
                     ]
                 ]
                 
