@@ -543,9 +543,9 @@ class MayaClient(object):
 
                 ]
                 //check visablility
-
-                [VarSet,SubToolTitle,[IgetTitle, Tool:Current Tool]]
-                [If,[IModGet,[StrMerge,"Tool:SubTool:",SubToolTitle]] >= 16,        
+                [VarSet,curTool,[IgetTitle, Tool:Current Tool]]
+                //look at interface mod
+                [If,[IModGet,[StrMerge,"Tool:SubTool:",currTool]] >= 16,        
                     //finally export if visable
                     [IPress,Tool:Export]
 

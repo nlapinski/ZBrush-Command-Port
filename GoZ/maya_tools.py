@@ -48,6 +48,8 @@ class MayaServer(object):
         utils.validate_host(self.host)
         utils.validate_port(self.port)
 
+        self.host = socket.getfqdn()
+
         self.cmdport_name = "%s:%s" % (self.host, self.port)
         self.status = cmds.commandPort(self.cmdport_name, query=True)
 
