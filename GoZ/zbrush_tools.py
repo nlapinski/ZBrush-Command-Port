@@ -477,6 +477,97 @@ class MayaClient(object):
             [RoutineCall, send_all]
         ]
         """
+
+        # zscript to create the 'send -vis' button
+        zscript += """
+        [RoutineDef, send_visable,
+
+            //check if in edit mode
+            [VarSet, ui,[IExists,Tool:SubTool:All Low]]
+
+            //if no open tool make a new tool
+            [If, ui == 0,
+            [ToolSelect, 41]
+            [IPress,Tool:Make PolyMesh3D]
+            ,]
+
+            //set all tools to lowest sub-d
+            [IPress, Tool:SubTool:All Low]
+
+            //iterator variable
+            [VarSet,t,0]
+
+            //start at the first subtool
+            [SubToolSelect,0]
+
+            //iterate through all subtools
+            [Loop,[SubToolGetCount],
+
+                //increment iterator
+                [VarSet,t,t+1]
+
+                //select current subtool index in loop
+                [SubToolSelect,t-1]
+
+                //set base export path #ENVPATH is replace with SHARED_DIR_ENV (expanded)
+                [VarSet, env_path, "!:#ENVPATH/"]
+
+                //current tool name
+                [VarSet, tool_name, [FileNameExtract, [GetActiveToolPath], 2]]
+
+                //start constructing export file path /some/dir/tool.ma
+                [VarSet, file_name, [StrMerge,tool_name,".ma"]]
+
+                //base python module shell command
+                [VarSet, module_path, "/usr/bin/python -m GoZ.zbrush_tools "]
+
+
+                //full export path
+                [VarSet, export_path, [StrMerge,env_path,file_name] ]
+
+                //set export path to be used by next command
+                [FileNameSetNext, #export_path,"ZSTARTUP_ExportTamplates\Maya.ma"]
+
+                [VarSet, validpath,[FileExists, "!:/Volumes/public/goz_default/"]]
+
+                [If, validpath != 1,
+
+
+                    //prevents zbrush crash from exporting to a invalid path
+                    //if zbrush exports to a bad path it will lock up
+                    [MessageOK, "Invalid ZDOCS file path for export"]
+                    [MessageOK, #export_path]
+                    [Exit]
+                    ,
+
+
+                ]
+                //check visablility
+
+                [VarSet,SubToolTitle,[IgetTitle, Tool:Current Tool]]
+                [If,[IModGet,[StrMerge,"Tool:SubTool:",SubToolTitle]] >= 16,        
+                    //finally export if visable
+                    [IPress,Tool:Export]
+
+                    //get base tool
+                    [SubToolSelect,0]
+                    [VarSet,base_tool,[IgetTitle, Tool:Current Tool]]
+                    [VarSet,base_tool, [FileNameExtract, #base_tool, 2]]
+
+                    [ShellExecute,
+                        //join module_path tool_name for maya to load
+                        [StrMerge, #module_path, #tool_name, " ",#base_tool]
+                    ]
+
+                    ,
+                ]
+            ]
+        ]
+        [IButton, "TOOL:Send to Maya -visable", "Export model as a *.ma to maya",
+            [RoutineCall, send_visable]
+        ]
+        """
+
         env = os.getenv(utils.SHARED_DIR_ENV)
         print env
 
