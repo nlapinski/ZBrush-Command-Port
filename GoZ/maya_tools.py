@@ -115,7 +115,7 @@ class ZBrushClient(object):
         relink()         -- relinks the current export mesh name to a prior GoZBrushID
         create()         -- exports a clean mesh with a new GoZBrushID
         parse_objs()     -- evalutes a list of objects for export, removes non-mesh dag types
-        goz_check()      -- checks object history for instances of GoZBrushID
+        get_gozid_mismatches() -- checks object history for instances of GoZBrushID, returns mismatches
         load_confirm()   -- checks with ZBrushServer to make sure objects are loaded after a send
         check_socket     -- poll ZBrushServer, execute before sending to look for issues
 
@@ -280,14 +280,15 @@ class ZBrushClient(object):
         else:
             return False
 
-    def goz_check(self):
+    def get_gozid_mismatches(self):
         """ 
-        creates a list of objects with GoZBrushID in history
+        creates a list of GoZBrushID/name conflicts
         
         GoZBrushID is created by ZBrush on export and is used to track
         name changes that can occur in maya
 
         this function compares object current name against the ID
+        and returns a list of conflicts
 
         this list is handled by the gui to allow for dialog boxes
         
