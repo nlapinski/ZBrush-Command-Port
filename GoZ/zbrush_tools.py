@@ -143,6 +143,45 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
                 //routine to locate a tool by name
                 //ZBrush uses ToolID, SubToolID, and UniqueID's 
                 //All of these are realative per project/session
+
+                //find subtool
+
+                [RoutineDef, findSubTool,
+
+
+                    //iterate through sub tools
+                    //even though the ui element exists
+                    //it may not be visable 
+                    [SubToolSelect,0]
+
+                    [Loop,[SubToolGetCount],
+
+                        //get currently selected tool name to compare
+                        [VarSet,currentTool,[IgetTitle, Tool:Current Tool]]
+                        [VarSet,subTool, [FileNameExtract, #currentTool, 2]]
+                        [If,([StrLength,"#TOOLNAME"]==[StrLength,#subTool])&&([StrFind,#subTool,"#TOOLNAME"]>-1),
+                            //there was a match, import
+                            //stop looking
+                            [LoopExit]
+                        ,]
+                        //move through each sub tool to make it visable
+                        [If,[IsEnabled,Tool:SubTool:SelectDown],
+                            [IPress, Tool:SubTool:SelectDown]
+
+                            ,
+                            [IPress, Tool:SubTool:Duplicate]
+                            [IPress, Tool:SubTool:MoveDown]
+                            [IPress, Tool:SubTool:All Low]
+                            [IPress, Tool:Geometry:Del Higher]
+                            [LoopExit]
+                        ]
+                    ]
+
+                ]
+
+
+                //find parent
+
                 [RoutineDef, findTool,
                     
                     //ToolIDs befor 47 are 'default' tools
@@ -152,9 +191,9 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
                     [VarSet,count,[ToolGetCount]-47]
                     [VarSet,a, 47]
                     
-                    //flag for if a object was imported
+                    //flag for if a object was found
                     //or a new blank object needs to be made 
-                    [VarSet, import,0]
+                    [VarSet, makeTool,0]
                     
                     //shuts off interface update
                     [IFreeze,
@@ -168,50 +207,37 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
                         
                         //check for matching tool
                         //looks in the interface/UI
-                        [VarSet, uiResult, [IExists,Tool:SubTool:#TOOLNAME]]
+                        [VarSet, uiResult, [IExists,Tool:SubTool:#PARENT]]
                        
                         [If, #uiResult == 1,
+                            [VarSet, makeTool,1]
+                            [LoopExit] 
+                        ,
 
-                            //iterate through sub tools
-                            //even though the ui element exists
-                            //it may not be visable 
-                            [Loop,[SubToolGetCount],
-
-                                //get currently selected tool name to compare
-                                [VarSet,currentTool,[IgetTitle, Tool:Current Tool]]
-                                [VarSet,subTool, [FileNameExtract, #currentTool, 2]]
-                                [If,([StrLength,"#TOOLNAME"]==[StrLength,#subTool])&&([StrFind,#subTool,"#TOOLNAME"]>-1),
-                                    //there was a match, import
-                                    [VarSet,import,1]
-                                    //stop looking
-                                    [LoopExit]
-                                ,]
-                                //move through each sub tool to make it visable
-                                [If,[IsEnabled,Tool:SubTool:SelectDown],
-                                    [IPress, Tool:SubTool:SelectDown]
-                                    ,[LoopExit]
-                                ]
-                            ]
-                            //break out of parent loop if a tool is found
-                            [If,#import==1,
-                                [LoopExit]
-                            ,
-                            ]
                         ]
                     ]
                     ]
-                    //check to see if imported or needs a new blank mesh
-
-                    //might be redundant-check
-                    [If, #import==0,
+                    //check to see if found or needs a new blank mesh
+                    [If, #makeTool==0,
                     //make a blank PolyMesh3D
                     [ToolSelect, 41]
                     [IPress,Tool:Make PolyMesh3D]
 
-                    ,]
+                    ,
+                    //otherwise 
+                    //find sub tool
+
+                    [RoutineCall, findSubTool]
+                    
+                    ]
                 ]
                 
-                
+
+                //find 'parent tool
+                //check for sub tool
+                //if found import
+                //if missing make new tool
+
                 [RoutineDef, open_file,
                     //check if in edit mode
                     [VarSet, ui,[IExists,Tool:SubTool:All Low]]
@@ -224,8 +250,9 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
                     , 
                     ]
 
-                    //find tool
+                    //find parent
                     [RoutineCall, findTool]
+
                     //lowest sub-d
                     [IPress, Tool:SubTool:All Low]
                     [FileNameSetNext,"!:#FILENAME"]
@@ -340,8 +367,9 @@ class MayaClient(object):
 
             //get base tool
             [SubToolSelect,0]
-            [VarSet, base_tool, [SubToolGetID]]
 
+            [VarSet,base_tool,[IgetTitle, Tool:Current Tool]]
+            [VarSet,base_tool, [FileNameExtract, #base_tool, 2]]
 
 
             //trigger the python module to send maya the load commands
@@ -433,7 +461,8 @@ class MayaClient(object):
 
                 //get base tool
                 [SubToolSelect,0]
-                [VarSet, base_tool, [SubToolGetID]]
+                [VarSet,base_tool,[IgetTitle, Tool:Current Tool]]
+                [VarSet,base_tool, [FileNameExtract, #base_tool, 2]]
 
                 [ShellExecute,
                     //join module_path tool_name for maya to load

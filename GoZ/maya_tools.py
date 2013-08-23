@@ -200,7 +200,19 @@ class ZBrushClient(object):
         # export, send
         if self.status:
             self.export()
-            self.sock.send('open|' + ':'.join(self.objs))
+
+            sendlist=[]
+
+            # organize lists so top level objects are first
+            for obj in self.objs:
+                if obj.split('#')[0]==obj.split('#')[1]:
+                    sendlist.append(obj)
+ 
+            for obj in self.objs:
+                if obj.split('#')[0]!=obj.split('#')[1]:
+                    sendlist.append(obj)
+
+            self.sock.send('open|' + ':'.join(sendlist))
             # check receipt of objs
             self.load_confirm()
         else:
