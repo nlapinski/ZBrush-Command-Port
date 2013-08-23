@@ -135,117 +135,108 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
         # zbrush script to iterate through sub tools,
         # and open matches, appends new tools
 
+
         zscript = """
-                //functions for opening *.ma files
-                [RoutineDef, open_file,
 
-                //check to make sure a tool is open
-                [VarSet, ui,[IExists,Tool:SubTool:All Low]]
+                //this is a new set of import functions
+                //it allows the loop up of top level tools
+                //routine to locate a tool by name
+                //ZBrush uses ToolID, SubToolID, and UniqueID's 
+                //All of these are realative per project/session
+                [RoutineDef, findTool,
+                    
+                    //ToolIDs befor 47 are 'default' tools
+                    //48+ are user loaded tools
+                    //this starts the counter at 48
+                    //also gets the last 'tool'
+                    [VarSet,count,[ToolGetCount]-47]
+                    [VarSet,a, 47]
+                    
+                    //flag for if a object was imported
+                    //or a new blank object needs to be made 
+                    [VarSet, import,0]
+                    
+                    //shuts off interface update
+                    [IFreeze,
+                    
+                    [Loop, #count,
+                        //increment current tool
+                        [VarSet, a, a+1]
+                        
+                        //select tool to look for matches
+                        [ToolSelect, #a]
+                        
+                        //check for matching tool
+                        //looks in the interface/UI
+                        [VarSet, uiResult, [IExists,Tool:SubTool:#TOOLNAME]]
+                       
+                        [If, #uiResult == 1,
 
+                            //iterate through sub tools
+                            //even though the ui element exists
+                            //it may not be visable 
+                            [Loop,[SubToolGetCount],
 
-                //if no open tool make a new tool to import ST into
-                [If, ui == 0,
-
-                [IPress,Tool:PolyMesh3D]
-                [IPress,Tool:Make PolyMesh3D]
-
-
-                ,]
-
-
-                //set all subtools low to preserver sub-d
-                [IPress, Tool:SubTool:All Low]
-
-
-                //checks to see if mesh has a 'parent' or is a new mesh
-                //meshes with parents will be appended correctly 
-                //as sub tools to the original base tool
-                [If, #PARENT == 0, 
-                    [ToolSelect, [ToolGetActiveIndex]]
-                    ,
-                    [ToolSelect, #PARENT]
-                ]
-
-                //import tool name, #TOOLNAME is replace with the .ma file name
-                // this is the same as the object name in maya
-                [VarSet,in_tool,#TOOLNAME]
-
-                //incremented if a tool match is found
-                //used to check if a new sub needs to be made
-                [VarSet,imp,0]
-
-                //set loop count based on tool count
-                [Loop, [SubToolGetCount],
-
-                //set next import path #FILENAME is replaced with the file from Maya
-                //!: is required in zbrush file names, not sure why
-                // file path must be fully expanded no env vars
-                [FileNameSetNext,"!:#FILENAME"]
-
-                //increment iterator, current tool
-                //for some reason this needs to be a single char
-                // or zbrush gets confused about variable reference
-                [VarSet, t, t+1]
-
-                //select current subtool index
-                // minus 1 to keep base 0, not 1
-                [SubToolSelect,t-1]
-
-                //get currently selected tool name to compare
-                [VarSet,SubToolTitle,[IgetTitle, Tool:Current Tool]]
-                [VarSet,sub, [FileNameExtract, SubToolTitle, 2]]
-
-                //convoluded way to check for a string match
-                //looks for matching sub tools to import/create new
-                [If,([StrLength,in_tool]==[StrLength,sub])&&([StrFind,sub,in_tool]>-1),
-                    [IPress,Tool:Import]
-                    [VarSet,imp,1],]
-                ]
-
-                //check if this tool was imported yet
-                [If, imp<1,
-
-                        //make sure all sub tools were iterated
-                        [If, t==[SubToolGetCount],
-
-                            //copy current sub tool
-                            [IPress,Tool:SubTool:Duplicate]
-
-                            //selected cloned tool to replace
-                            [IPress,Tool:SubTool:MoveDown]
-
-                            //clear any sub-d
-                            [IPress,Tool:Geometry:Del Higher]
-
-                            //set import file name path
-                            [FileNameSetNext,"!:#FILENAME"]
-
-                            //finally import
-                            [IPress,Tool:Import]
-
-                            //replace old sub tool path
-                            //not sure why this is needed but
-                            //'cloned' sub tools maintain a file path
-                            //to their orginal file
-                            [ToolSetPath,[SubToolGetCount],"!:#FILENAME"]
+                                //get currently selected tool name to compare
+                                [VarSet,currentTool,[IgetTitle, Tool:Current Tool]]
+                                [VarSet,subTool, [FileNameExtract, #currentTool, 2]]
+                                [If,([StrLength,"#TOOLNAME"]==[StrLength,#subTool])&&([StrFind,#subTool,"#TOOLNAME"]>-1),
+                                    //there was a match, import
+                                    [VarSet,import,1]
+                                    //stop looking
+                                    [LoopExit]
+                                ,]
+                                //move through each sub tool to make it visable
+                                [If,[IsEnabled,Tool:SubTool:SelectDown],
+                                    [IPress, Tool:SubTool:SelectDown]
+                                    ,[LoopExit]
+                                ]
+                            ]
+                            //break out of parent loop if a tool is found
+                            [If,#import==1,
+                                [LoopExit]
                             ,
-                            //this occurs if something went really wrong
-                            //should never happen unless a file path is broken
-                            [MessageOk, "Error loading tool"]
+                            ]
                         ]
+                    ]
+                    ]
+                    //check to see if imported or needs a new blank mesh
+
+                    //might be redundant-check
+                    [If, #import==0,
+                    //make a blank PolyMesh3D
+                    [ToolSelect, 41]
+                    [IPress,Tool:Make PolyMesh3D]
+
+                    ,]
+                ]
+                
+                
+                [RoutineDef, open_file,
+                    //check if in edit mode
+                    [VarSet, ui,[IExists,Tool:SubTool:All Low]]
+
+                    //if no open tool make a new tool
+                    // this could happen if there is no active mesh
+                    [If, ui == 0,
+                    [ToolSelect, 41]
+                    [IPress,Tool:Make PolyMesh3D]
+                    , 
+                    ]
+
+                    //find tool
+                    [RoutineCall, findTool]
+                    //lowest sub-d
+                    [IPress, Tool:SubTool:All Low]
+                    [FileNameSetNext,"!:#FILENAME"]
+                    //finally import the tool
+                    [IPress,Tool:Import]
                 ]
 
-                [If, ui == 0,
-
-                [IPress,Tool:SubTool:PM3D_PolyMesh3D]
-                [IPress,Tool:SubTool:Delete]
-
-
-                ,]
-
-                ]
                 [RoutineCall,open_file]
+
                 """
+
 
         # swap above zscript #'s with info from maya
         # then write to temp file
@@ -300,7 +291,7 @@ class MayaClient(object):
 
             //if no open tool make a new tool
             [If, ui == 0,
-            [IPress,Tool:PolyMesh3D]
+            [ToolSelect, 41]
             [IPress,Tool:Make PolyMesh3D]
             ,]
             
@@ -328,12 +319,28 @@ class MayaClient(object):
             //this sets the file name for the next export \w correct 'tamplate'
             [FileNameSetNext, #export_path,"ZSTARTUP_ExportTamplates\Maya.ma"]
 
+            [VarSet, validpath,[FileExists, "!:/Volumes/public/goz_default/"]]
+
+            [If, validpath != 1,
+
+
+                //prevents zbrush crash from exporting to a invalid path
+                //if zbrush exports to a bad path it will lock up
+                [MessageOK, "Invalid ZDOCS file path for export"]
+                [MessageOK, #export_path]
+                [Exit]
+                ,
+
+
+            ]
+
+
             //finally export the tool
             [IPress,Tool:Export]
 
             //get base tool
             [SubToolSelect,0]
-            [VarSet, base_tool, [ToolGetActiveIndex]]
+            [VarSet, base_tool, [SubToolGetID]]
 
 
 
@@ -361,7 +368,7 @@ class MayaClient(object):
 
             //if no open tool make a new tool
             [If, ui == 0,
-            [IPress,Tool:PolyMesh3D]
+            [ToolSelect, 41]
             [IPress,Tool:Make PolyMesh3D]
             ,]
 
@@ -402,13 +409,31 @@ class MayaClient(object):
                 //set export path to be used by next command
                 [FileNameSetNext, #export_path,"ZSTARTUP_ExportTamplates\Maya.ma"]
 
+
+
+                [VarSet, validpath,[FileExists, "!:/Volumes/public/goz_default/"]]
+
+                [If, validpath != 1,
+
+
+                    //prevents zbrush crash from exporting to a invalid path
+                    //if zbrush exports to a bad path it will lock up
+                    [MessageOK, "Invalid ZDOCS file path for export"]
+                    [MessageOK, #export_path]
+                    [Exit]
+                    ,
+
+
+                ]
+
+
                 //finally export
                 [IPress,Tool:Export]
 
 
                 //get base tool
                 [SubToolSelect,0]
-                [VarSet, base_tool, [ToolGetActiveIndex]]
+                [VarSet, base_tool, [SubToolGetID]]
 
                 [ShellExecute,
                     //join module_path tool_name for maya to load
