@@ -11,15 +11,22 @@ class ZBrushGUI(object):
 
     GUI for zbrush_tools
 
+    build a UI using Tkinter, gets network info from utils.get_net_info
+    starts ZBrushServer and MayaClient from zbrush_tools
+
+    Also installs a zscript GUI in ZBrush using zbrush_tools.zscript_ui
+
     attributes:
-        self.serv            -- ZBrushServer instance
-        self.client          -- MayaClient instance
-                             -- both inherit host/port attr
-    methods:
-        build                -- construct gui for zbrush_tools
-        serv_start           -- start a ZBrush command port with ZBrushServer.start()
-        test_client          -- create a connection to maya with MayaClient.connect()
-        zscript_ui           -- attaches two zbrush gui elements (makes a zscript from env vars)
+        self.serv             -- ZBrushServer instance
+        self.client           -- MayaClient instance
+
+        self.maya_status_ui   -- status lines
+        self.zbrush_status_ui --
+      
+        self.maya_host_ui     -- maya host
+        self.maya_port_ui     -- maya port
+
+        self.zbrush_port_ui   -- zbrush port
 
     """
 
@@ -45,8 +52,13 @@ class ZBrushGUI(object):
         self.win.mainloop()
 
     def serv_start(self):
-        """start sever command """
+        """
+        starts sever
 
+        gets network info from UI (port)
+
+        sets status line
+        """ 
         self.serv.port = self.zbrush_port_ui.get()
 
         with zbrush_tools.utils.err_handler(self.error_gui):
@@ -63,7 +75,12 @@ class ZBrushGUI(object):
                 background='red')
 
     def serv_stop(self):
-        """stop server command """
+        """
+        stops server
+
+        sets status line 
+        
+        """
 
         self.serv.stop()
         self.zbrush_status_ui.config(
@@ -107,7 +124,7 @@ class ZBrushGUI(object):
 
         Tkinter.Label(
             self.win,
-            text='Set host/port in MNET/ZNET envs').pack(
+            text='Set MNET/ZNET/ZDOCS envs').pack(
                 pady=0,
                 padx=25)
         Tkinter.Label(
@@ -117,7 +134,7 @@ class ZBrushGUI(object):
                 padx=25)
         Tkinter.Label(
             self.win,
-            text='If not set, starts in local mode').pack(
+            text='set ZDOCS to your network path').pack(
                 pady=0,
                 padx=25)
 

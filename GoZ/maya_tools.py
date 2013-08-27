@@ -1,4 +1,28 @@
-"""Maya Server and ZBrush client classes """
+"""
+Maya Server and ZBrush client classes
+
+MayaServer is used to start a commandPort,
+and listen for objects from ZBrush
+
+Objects are loaded when ZBrushServer calls 
+client.load funcitons with name/path and tool parent 
+
+If the ZDOCS env is missing MayaServer/ZBrushClient
+will start in a local mode
+
+ZBrushClient is used for sending ascii files to ZBrush
+from Maya, it also manges GoZBrushIDs, and GoZParent attributes
+These attributes are used to keep track of name changes in maya
+
+Conflicts in the attributes result in renaming on export
+or creating new attributes to fit name changes
+
+CONSTANTS:
+
+    GARBAGE_NODES -- nodes marked for removal in maya
+                     used to prevent duplicates
+
+"""
 
 import socket
 import errno
@@ -20,21 +44,20 @@ class MayaServer(object):
 
     Maya server using commandPort, gets meshes from zbrush
 
+    start/stop(host,port) functions open/close the maya commandPort
+
     attributes:
         self.status                    -- current server status (up/down)
         self.host                      -- current host for serving on from utils.get_net_info
         self.port                      -- current port for serving on from utils.get_net_info
-        self.cmdport_name              -- formated command port name
-        self.file_path                 -- current file being loaded from ZBrush (full path)
-        self.file_name                 -- current file being loaded from ZBrush (name only no ext)
-        self.nodes                     -- a list of nodes to remove on ZBrush file import
+        self.cmdport_name              -- formated command port name (xxx.xxx.xxx.xxx:port)
+        self.file_path                 -- current file loaded from ZBrush (full path)
+        self.file_name                 -- current object loaded from ZBrush (name only no ext)
 
-    methods:
-        start(ip,port)                 -- starts maya command port
-        stop(ip,port)                  -- stops maya command port
     """
 
     def __init__(self):
+        """gets networking info, creates command port name """
         self.host, self.port = utils.get_net_info('MNET')
 
         self.cmdport_name = "%s:%s" % (self.host, self.port)
@@ -98,31 +121,24 @@ class ZBrushClient(object):
     """
     ZBrush client used for sending meshes to zbrush
 
+    methods of this class handle:
+        Object name management between zbrush/maya
+        Connections to ZBrushServer
+        Cleaning and exporting mayaAscii files
+
     attributes:
         self.status      -- status of the connection to ZBrushServer
-        self.ascii_path  -- current ascii file export path
+        self.ascii_path  -- current maya ascii file export path
         self.objs        -- list of objects to send to ZBrushServer
         self.host        -- current host obtained from utils.get_net_info
         self.port        -- current port obtained from utils.get_net_info
         self.sock        -- current open socket connection
 
-    methods:
-        connect()        -- connects to ZBrushServer
-        send()           -- send a file load command to ZBrush via ZBrushServer
-        export()         -- exports selected meshes and checks for previous GoZBrushIDs
-        relink()         -- relinks the current export mesh name to a prior GoZBrushID
-        create()         -- exports a clean mesh with a new GoZBrushID
-        parse_objs()     -- evalutes a list of objects for export, removes non-mesh dag types
-        get_gozid_mismatches() -- checks object history for instances of GoZBrushID, returns mismatches
-        load_confirm()   -- checks with ZBrushServer to make sure objects are loaded after a send
-        check_socket     -- poll ZBrushServer, execute before sending to look for issues
-
     """
 
     def __init__(self):
-
-        # setup host/port, set server to 'down', create a port and try to
-        # connect
+        """gets networking information, initalizes  client"""
+            
         self.host, self.port = utils.get_net_info('ZNET')
         self.status = False
         self.sock = None
@@ -195,7 +211,14 @@ class ZBrushClient(object):
             print 'need new sock'
 
     def send(self):
-        """ send to ZBrush """
+        """
+        send a file load command to ZBrush via ZBrushServer
+        
+        commands are send looking like:
+        open|object#parentobject:nextobject#nextparent
+
+        this is then parsed by ZBrushServer
+        """
 
         # export, send
         if self.status:
@@ -220,7 +243,14 @@ class ZBrushClient(object):
                 'Please connect to ZBrushServer first')
 
     def load_confirm(self):
-        """ make sure files loaded correctly """
+        """ 
+        checks with ZBrushServer to make 
+        sure objects are loaded after a send
+
+        'loaded' will be sent back from ZBrushServer
+        on load of a object from maya
+        """
+
         if self.sock.recv(1024) == 'loaded':
             print 'ZBrush Loaded:'
             print ('\n'.join(self.objs))
@@ -297,16 +327,17 @@ class ZBrushClient(object):
 
     def get_gozid_mismatches(self):
         """ 
-        creates a list of GoZBrushID/name conflicts
-        
+        checks object history for instances of GoZBrushID,
+        returns a list ofGoZBrushID/name conflicts
+         
         GoZBrushID is created by ZBrush on export and is used to track
         name changes that can occur in maya
-
+         
         this function compares object current name against the ID
         and returns a list of conflicts
-
+         
         this list is handled by the gui to allow for dialog boxes
-        
+
         """
 
         goz_list = []

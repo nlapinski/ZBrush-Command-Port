@@ -1,5 +1,17 @@
-""" starts ZBrushSever, manages MayaClient"""
-#!/usr/bin/python
+""" 
+starts ZBrushSever, manages MayaClient
+
+ZbrushServer recived strings such as:
+    open|objectname#objectparent:anotherobject#anotherparent...
+
+These are parsed and opened in ZBrush with the use of some apple script
+
+MayaClient conencts to a open commandPort in maya
+
+GoZ.maya_tools.load(file,objname,objparent) is used to open files
+
+
+"""
 import os
 import socket
 import SocketServer
@@ -10,7 +22,6 @@ from GoZ import utils as utils
 class ZBrushServer(object):
 
     """
-
     ZBrush server extending SocketServer module, gets meshes from maya
 
     attributes:
@@ -19,17 +30,11 @@ class ZBrushServer(object):
         self.port                      -- current port for serving on from utils.get_net_info
         self.cmdport_name              -- formated command port name
 
-    methods:
-        start()              -- start the server
-        stop()               -- stop the server
-
-    class:
-        ZBrushSocketServ     -- configures daemon mode for socketserv module
-        ZBrushHandler        -- handles loading objects from maya
-
     """
 
     def __init__(self, host, port):
+        """initializes server with host/port to server on, send from GoZ.zbrushgui """
+
         self.host = host
         self.port = port
         self.server = None
@@ -68,7 +73,11 @@ class ZBrushServer(object):
 
 class ZBrushSocketServ(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
-    """ extends socket server with custom settings"""
+    """
+    extends socket server with custom settings
+    
+    configures daemon mode for socketserv module
+    """
     timeout = 5
     daemon_threads = True
     allow_reuse_address = True
@@ -85,7 +94,19 @@ class ZBrushSocketServ(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 class ZBrushHandler(SocketServer.BaseRequestHandler):
 
-    """ custom handler for ZBrushSever"""
+    """
+    custom handler for ZBrushSever
+    handles loading objects from maya
+    
+    splits:
+    open|objectname#objectparent:anotherobject#anotherparent...
+
+    also response with 'loaded' on sucessful object load
+
+    if 'check' is send from ZBrushClient a 'ok' send back
+    this is used to check if the server is up/ready
+
+    """
 
 
     def handle(self):
@@ -212,6 +233,10 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
                        
                         [If, #uiResult == 1,
                             //check to see if tool is a parent tool
+                            //if it is select it, otherwise iterate to find sub tool
+                            //ideally direct selection of the subtool would be posible
+                            //but sub tools can potentially be hidden in the UI
+                            //findSubTool iterates through sub tools to find a match
                             [If, [IExists,Tool:#PARENT],
                             [IPress, Tool:#PARENT],
                             ]
@@ -284,25 +309,35 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
 class MayaClient(object):
 
     """
-    Maya client used for sending meshes to maya
+    Maya client used for sending meshes to maya, also contains methods
+    to create a UI buttons in ZBrush with MayaClient.zscript_ui()
+
+    Also contains a method to check operation with maya MayaClient.test_client()
+
+    MayaClient.send() is used by the GUI installed in ZBrush by running:
+    python -m GoZ.zbrush_tools
+
+    this executes this module as a script with command line arguments
+    the args contain objectname, and object parent tool
+
+    GoZ.utils.osa_send is used to create a gui in ZBrush
+
+    GoZ.utils.osa_open is also used to open ZBrush 
 
     attributes:
         self.host        -- current host obtained from utils.get_net_info
         self.port        -- current port obtained from utils.get_net_info
 
-    methods:
-        zscript_ui       -- creates UI for ZBrush (appears in ZBrush)
-        test_client      -- tests connection to maya
-        send             -- sends meshes to maya
     """
 
     def __init__(self, host, port):
+        """ inits client with values from gui"""
         self.host = host
         self.port = port
 
     @staticmethod
     def activate_zbrush():
-        """ osascript -e 'tell app "ZBrush" to activate' """
+        """ apple script to open ZBrush and bring to front """
         utils.open_osa()
 
     @staticmethod
@@ -342,7 +377,7 @@ class MayaClient(object):
             //appends .ma to the path for export, construct filename
             [VarSet, file_name, [StrMerge,tool_name,".ma"]]
 
-            //python module execution command
+            //python module execution command, needs to be abs path
             [VarSet, module_path, "/usr/bin/python -m GoZ.zbrush_tools "]
 
             //append env to file path
@@ -433,7 +468,7 @@ class MayaClient(object):
                 //start constructing export file path /some/dir/tool.ma
                 [VarSet, file_name, [StrMerge,tool_name,".ma"]]
 
-                //base python module shell command
+                //base python module shell command, needs to be abs path
                 [VarSet, module_path, "/usr/bin/python -m GoZ.zbrush_tools "]
 
 
@@ -521,7 +556,7 @@ class MayaClient(object):
                 //start constructing export file path /some/dir/tool.ma
                 [VarSet, file_name, [StrMerge,tool_name,".ma"]]
 
-                //base python module shell command
+                //base python module shell command, needs to be absolute path
                 [VarSet, module_path, "/usr/bin/python -m GoZ.zbrush_tools "]
 
 
@@ -608,7 +643,17 @@ class MayaClient(object):
 
     @staticmethod
     def send(obj_name,parent_name):
-        """ sends a file to maya"""
+        """ 
+        sends a file to maya
+
+        includes filepath, object name, and the "parent"
+
+        The parent is the top level tool or sub tool 0 of the current tool
+        this is used to preserve organization when loading back into ZBrush
+
+        connects to maya commandPort and sends the maya commands
+        
+        """
         print 'Parent tool: '+parent_name
 
         # construct file read path for maya, uses SHARED_DIR_ENV
@@ -617,8 +662,8 @@ class MayaClient(object):
 
         print file_path
 
-
-        # previous import was not looking inside of GoZ package
+        # previous import was not looking inside of GoZ package maybe?
+        # this could have been the error with sending back to maya previously
         maya_cmd = 'from GoZ import maya_tools;maya_tools.load("' + file_path+'","'+obj_name+'","'+parent_name +'")'
 
         print maya_cmd
@@ -634,6 +679,8 @@ class MayaClient(object):
 
 
 if __name__ == "__main__":
+    """grabs args for when this module is run as a script """
+
     import sys
     # send to maya/save from zbrush
     # arg 1: object name ie: pSphere1

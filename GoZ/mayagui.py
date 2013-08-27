@@ -1,4 +1,4 @@
-"""Classes to creat a gui within maya uses maya_tools """
+"""Class to create a gui within maya uses GoZ.maya_tools"""
 
 from pymel.core import window
 from pymel.core import button
@@ -18,25 +18,14 @@ class Win(object):
     GUI for maya_tools
 
     attributes:
-        self.serv            -- MayaServer instance
-        self.client          -- ZBrushClient instance
+        self.serv             -- MayaServer instance
+        self.client           -- ZBrushClient instance
+        self.user_*           -- user defined network info
 
-    methods:
+        self.maya_status_ui   -- connection status
+        self.zbrush_status_ui -- connection status
 
-        __init__             -- start Server/Client, make UI
-        build                -- construct gui for maya_tools
-        spacer               -- add some pymel spacers
-        get_maya_settings    -- get settings from gui
-        get_zbrush_settings  -- ''                         ''
-        show                 -- bring gui to front
-
-        listen               -- start a maya command port with MayaServer.start()
-        connect              -- create a connection to zbrush with ZBrushClient.connect()
-        send                 -- sends to zbrush with ZBrushClient.send()
-        zbrush_gozid         -- present dialog box for ZBrushClient.relink()/create()
-        shelf_send           -- send to zbrush with ZBrushClient.send()
-        rename_gui           -- dialouge for rename/relink goz_id
-        update_network          -- set host/port in client/server
+        self.gui/btn          -- various pymel UI elements
     """
 
     def __init__(self):
@@ -66,7 +55,7 @@ class Win(object):
         self.check_status_ui()
 
     def update_network(self):
-        """ sends host/port back to client/server """
+        """ sends host/port back to client/server instances"""
 
         self.client.host = self.user_zbrush_host.getText()
         self.client.port = self.user_zbrush_port.getText()
@@ -74,7 +63,7 @@ class Win(object):
         self.serv.port = self.user_maya_port.getText()
 
     def connect(self, *args):
-        """ connects to ZBrushServer using maya_tools"""
+        """ connects to ZBrushServer using ZBrushClient instance"""
         print args
 
         self.update_network()
@@ -96,7 +85,16 @@ class Win(object):
             self.zbrush_status_ui.setLabel('Status: not connected')
 
     def send(self, *args):
-        """ send to zbrush """
+        """ 
+        send to zbrush using client instance
+
+        assists in some handling of GoZBrushID name mistmatches,
+        this is done here to easliy create GUI boxes for create/relink
+
+        client.get_gozid_mistmatches returns a list of GoZBrushID mistmatches
+        that need to resolved before sending the object to ZBrushServer
+        
+        """
 
         self.client.check_socket()
         try:
@@ -134,7 +132,7 @@ class Win(object):
             self.error_gui('Please select a mesh to send')
 
     def listen(self, *args):
-        """  writes back host/port, starts listening """
+        """  writes back host/port to MayaServer, starts listening """
 
         print args
 

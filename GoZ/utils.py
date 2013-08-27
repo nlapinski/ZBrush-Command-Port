@@ -1,7 +1,7 @@
 """
 Utilities for managing validation and enviromental variables
 
-constants:
+CONSTANTS:
     
     MAYA_ENV        -- default maya network info env var
     ZBRUSH_ENV      -- default zbrush network info env var
@@ -11,23 +11,9 @@ constants:
     OS              -- platform check
                        currently only osx is supported
 
-    SHARED_DIR_DEFAULT_OSX -- default OSX file plath for 'localmode'
-    SHARED_DIR_DEFAULT_WIN -- default WIN file path for 'localmode'
+    SHARED_DIR_*    -- default OSX file plath for 'localmode'
+    SHARED_DIR_*    -- default WIN file path for 'localmode'
 
-methods:
-    validate        -- validates host and port
-    validate_host   -- validates a host
-    validate_port   -- validates a port
-
-    getenvs         -- returns enviromenal variables
-    split_file_name -- returns a object name from full file path
-    make_file_name  -- constructs a file path, with ENVs
-    
-    err_handler     -- general error handler
-                       takes a gui/logger function
-    
-    get_net_info    -- takes a env varaible to look for
-                       returns host/port
 """
 
 import os
@@ -92,9 +78,7 @@ def validate_host(host):
 
 
 def validate(net_string):
-    """
-    runs host/port validation on a string
-    """
+    """runs host/port validation on a string"""
 
     print net_string
 
@@ -115,6 +99,11 @@ def get_net_info(net_env):
 
     # check the shared dir first. it could force us into local mode
     shared_dir = os.getenv(SHARED_DIR_ENV)
+
+    # check for empty but existing env var
+    if shared_dir is '':
+        shared_dir = None
+
     if shared_dir is None:
         # if no shared directory is set, start in local modee
         print "No shared directory set. Defaulting to local mode"
@@ -167,15 +156,18 @@ def send_osa(script_path):
     os.system(cmd)
 
 def open_osa():
-    """ opens zbrush """
+    """ 
+    opens zbrush
 
-    # blocks untill ZBrush is ready for addional commands
-    # makes sure ZBrush is ready to install the GUI
+    blocks untill ZBrush is ready for addional commands
+    makes sure ZBrush is ready to install the GUI
 
-    #launches ZBrush
-    #loop to check if ZBrush is 'ready'
-    #brings ZBrush to front/focus
-    #clears any crash messages 
+    launches ZBrush
+    loop to check if ZBrush is 'ready'
+    brings ZBrush to front/focus
+    clears any crash messages 
+
+    """
 
     osa = "osascript "\
     +"-e 'tell application \"ZBrush\" to launch' "\

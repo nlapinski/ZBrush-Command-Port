@@ -1,5 +1,4 @@
-""" custom exceptions for GoZ """
-
+"""custom exceptions for GoZ"""
 
 class IpError(Exception):
 
