@@ -85,7 +85,7 @@ class Win(object):
             self.zbrush_status_ui.setLabel('Status: not connected')
 
     def send(self, *args):
-        """ 
+        """
         send to zbrush using client instance
 
         assists in some handling of GoZBrushID name mistmatches,
@@ -93,7 +93,7 @@ class Win(object):
 
         client.get_gozid_mistmatches returns a list of GoZBrushID mistmatches
         that need to resolved before sending the object to ZBrushServer
-        
+
         """
 
         self.client.check_socket()
@@ -161,10 +161,10 @@ class Win(object):
         """
         gui_message = """%s has a old ZBrush ID, of %s, try to relink?
 
-                        NOTE! relinking will 
+                        NOTE! relinking will
                         remove objects named "%s"
                         selected mesh as the new one!!
-                        """ % (self.client.goz_obj, self.client.goz_id,self.client.goz_id)
+                        """ % (self.client.goz_obj, self.client.goz_id, self.client.goz_id)
 
         choice = confirmDialog(title="ZBrush Name Conflict",
                                message=gui_message,
@@ -172,12 +172,12 @@ class Win(object):
         if 'Relink' in choice:
             # relink to past GoZBrushID
             self.client.relink()
-            #remove any corrected IDs from list
+            # remove any corrected IDs from list
             self.client.parse_objs()
         if 'Create' in choice:
             # new object for zbrush
             self.client.create()
-            #remove any corrected IDs from list
+            # remove any corrected IDs from list
             self.client.parse_objs()
             print 'time make a new one'
 

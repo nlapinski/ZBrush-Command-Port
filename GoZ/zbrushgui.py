@@ -5,6 +5,7 @@ import Tkinter
 import tkMessageBox
 import GoZ.utils as utils
 
+
 class ZBrushGUI(object):
 
     """
@@ -22,7 +23,7 @@ class ZBrushGUI(object):
 
         self.maya_status_ui   -- status lines
         self.zbrush_status_ui --
-      
+
         self.maya_host_ui     -- maya host
         self.maya_port_ui     -- maya port
 
@@ -33,15 +34,15 @@ class ZBrushGUI(object):
     def __init__(self):
         zhost, zport = utils.get_net_info('ZNET')
         mhost, mport = utils.get_net_info('MNET')
-        
+
         self.serv = zbrush_tools.ZBrushServer(zhost, zport)
         self.client = zbrush_tools.MayaClient(mhost, mport)
-        
+
         self.maya_status_ui = None
         self.maya_host_ui = None
         self.maya_port_ui = None
 
-        self.zbrush_port_ui = None 
+        self.zbrush_port_ui = None
         self.zbrush_status_ui = None
         self.win = None
 
@@ -58,7 +59,7 @@ class ZBrushGUI(object):
         gets network info from UI (port)
 
         sets status line
-        """ 
+        """
         self.serv.port = self.zbrush_port_ui.get()
 
         with zbrush_tools.utils.err_handler(self.error_gui):
@@ -78,8 +79,8 @@ class ZBrushGUI(object):
         """
         stops server
 
-        sets status line 
-        
+        sets status line
+
         """
 
         self.serv.stop()

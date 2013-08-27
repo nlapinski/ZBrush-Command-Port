@@ -1,5 +1,6 @@
 """custom exceptions for GoZ"""
 
+
 class IpError(Exception):
 
     """

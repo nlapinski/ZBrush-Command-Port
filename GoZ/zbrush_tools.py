@@ -1,4 +1,4 @@
-""" 
+"""
 starts ZBrushSever, manages MayaClient
 
 ZbrushServer recived strings such as:
@@ -45,7 +45,7 @@ class ZBrushServer(object):
         """ looks for previous server, trys to start a new one"""
 
         self.status = False
-        
+
         utils.validate_host(self.host)
         utils.validate_port(self.port)
 
@@ -56,7 +56,8 @@ class ZBrushServer(object):
 
         print 'starting a new server!'
 
-        self.server = ZBrushSocketServ((self.host, int(self.port)), ZBrushHandler)
+        self.server = ZBrushSocketServ(
+            (self.host, int(self.port)), ZBrushHandler)
         self.server.allow_reuse_address = True
         self.server_thread = Thread(target=self.server.serve_forever)
         self.server_thread.daemon = True
@@ -71,11 +72,12 @@ class ZBrushServer(object):
         print 'stoping...'
         self.status = False
 
+
 class ZBrushSocketServ(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
     """
     extends socket server with custom settings
-    
+
     configures daemon mode for socketserv module
     """
     timeout = 5
@@ -92,12 +94,13 @@ class ZBrushSocketServ(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def handle_timeout(self):
         print 'TIMEOUT'
 
+
 class ZBrushHandler(SocketServer.BaseRequestHandler):
 
     """
     custom handler for ZBrushSever
     handles loading objects from maya
-    
+
     splits:
     open|objectname#objectparent:anotherobject#anotherparent...
 
@@ -107,7 +110,6 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
     this is used to check if the server is up/ready
 
     """
-
 
     def handle(self):
         # keep handle open until client/server close
@@ -129,14 +131,13 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
                     print 'got: ' + obj
                     parent = obj.split('#')[1]
                     obj = obj.split('#')[0]
-                    zs_temp = self.zbrush_open(obj + '.ma',parent)
+                    zs_temp = self.zbrush_open(obj + '.ma', parent)
                     utils.send_osa(zs_temp)
                 print 'loaded all objs!'
                 self.request.send('loaded')
 
-
     @staticmethod
-    def zbrush_open(name,parent):
+    def zbrush_open(name, parent):
         """open a file with zbrush
         -create temp zscript file
         -load with file open commands
@@ -145,8 +146,7 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
         -import if match, append new cloned tool for unique tools
 
         """
-        script_path = os.path.dirname(
-            os.path.abspath(__file__))
+        script_path = os.environ['HOME']
         script_path = os.path.join(script_path, 'zbrush_load.txt')
         zs_temp = open(script_path, 'w+')
 
@@ -156,13 +156,12 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
         # zbrush script to iterate through sub tools,
         # and open matches, appends new tools
 
-
         zscript = """
 
                 //this is a new set of import functions
                 //it allows the loop up of top level tools
                 //routine to locate a tool by name
-                //ZBrush uses ToolID, SubToolID, and UniqueID's 
+                //ZBrush uses ToolID, SubToolID, and UniqueID's
                 //All of these are realative per project/session
 
                 //find subtool
@@ -172,7 +171,7 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
 
                     //iterate through sub tools
                     //even though the ui element exists
-                    //it may not be visable 
+                    //it may not be visable
                     [SubToolSelect,0]
 
                     [Loop,[SubToolGetCount],
@@ -204,33 +203,33 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
                 //find parent
 
                 [RoutineDef, findTool,
-                    
+
                     //ToolIDs befor 47 are 'default' tools
                     //48+ are user loaded tools
                     //this starts the counter at 48
                     //also gets the last 'tool'
                     [VarSet,count,[ToolGetCount]-47]
                     [VarSet,a, 47]
-                    
+
                     //flag for if a object was found
-                    //or a new blank object needs to be made 
+                    //or a new blank object needs to be made
                     [VarSet, makeTool,0]
-                    
+
                     //shuts off interface update
                     [IFreeze,
 
                     [Loop, #count,
                         //increment current tool
                         [VarSet, a, a+1]
-                        
+
                         //select tool to look for matches
                         [ToolSelect, #a]
                         [SubToolSelect,0]
-                        
+
                         //check for matching tool
                         //looks in the interface/UI
                         [VarSet, uiResult, [IExists,Tool:SubTool:#PARENT]]
-                       
+
                         [If, #uiResult == 1,
                             //check to see if tool is a parent tool
                             //if it is select it, otherwise iterate to find sub tool
@@ -243,7 +242,7 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
 
                             [RoutineCall, findSubTool]
                             [VarSet, makeTool,0]
-                            [LoopExit] 
+                            [LoopExit]
                         ,
                             [VarSet,makeTool,1]
 
@@ -256,13 +255,13 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
                     [IPress,Tool:Make PolyMesh3D]
 
                     ,
-                    //otherwise 
+                    //otherwise
                     //find sub tool
-                    
+
                     ]
                     ]
                 ]
-                
+
 
                 //find 'parent tool
                 //check for sub tool
@@ -278,7 +277,7 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
                     [If, ui == 0,
                     [ToolSelect, 41]
                     [IPress,Tool:Make PolyMesh3D]
-                    , 
+                    ,
                     ]
 
                     //find parent
@@ -295,13 +294,12 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
 
                 """
 
-
         # swap above zscript #'s with info from maya
         # then write to temp file
         zscript = zscript.replace(
             '#FILENAME', os.path.join(env, name))
         zscript = zscript.replace('#TOOLNAME', name.replace('.ma', ''))
-        zscript = zscript.replace('#PARENT',parent)
+        zscript = zscript.replace('#PARENT', parent)
         zs_temp.write(zscript)
         return zs_temp.name
 
@@ -322,7 +320,7 @@ class MayaClient(object):
 
     GoZ.utils.osa_send is used to create a gui in ZBrush
 
-    GoZ.utils.osa_open is also used to open ZBrush 
+    GoZ.utils.osa_open is also used to open ZBrush
 
     attributes:
         self.host        -- current host obtained from utils.get_net_info
@@ -346,14 +344,14 @@ class MayaClient(object):
 
         # grab the current path of this file, make a temp file in the same
         # location
-        script_path = os.path.dirname(os.path.abspath(__file__))
+        script_path = os.environ['HOME']
         script_path = os.path.join(script_path, 'zbrush_gui.txt')
         zs_temp = open(script_path, 'w+')
 
         # zscript to create the 'send' button
         zscript = """
         [RoutineDef, send_file,
-            
+
             //check if in edit mode
             [VarSet, ui,[IExists,Tool:SubTool:All Low]]
 
@@ -362,7 +360,7 @@ class MayaClient(object):
             [ToolSelect, 41]
             [IPress,Tool:Make PolyMesh3D]
             ,]
-            
+
             //set lowest subtool resolution
             [IPress, Tool:SubTool:All Low]
 
@@ -583,7 +581,7 @@ class MayaClient(object):
                 //check visablility
                 [VarSet,curTool,[IgetTitle, Tool:Current Tool]]
                 //look at interface mod
-                [If,[IModGet,[StrMerge,"Tool:SubTool:",curTool]] >= 16,        
+                [If,[IModGet,[StrMerge,"Tool:SubTool:",curTool]] >= 16,
                     //finally export if visable
                     [IPress,Tool:Export]
 
@@ -642,8 +640,8 @@ class MayaClient(object):
             return True
 
     @staticmethod
-    def send(obj_name,parent_name):
-        """ 
+    def send(obj_name, parent_name):
+        """
         sends a file to maya
 
         includes filepath, object name, and the "parent"
@@ -652,9 +650,9 @@ class MayaClient(object):
         this is used to preserve organization when loading back into ZBrush
 
         connects to maya commandPort and sends the maya commands
-        
+
         """
-        print 'Parent tool: '+parent_name
+        print 'Parent tool: ' + parent_name
 
         # construct file read path for maya, uses SHARED_DIR_ENV
         # make realative path
@@ -664,7 +662,11 @@ class MayaClient(object):
 
         # previous import was not looking inside of GoZ package maybe?
         # this could have been the error with sending back to maya previously
-        maya_cmd = 'from GoZ import maya_tools;maya_tools.load("' + file_path+'","'+obj_name+'","'+parent_name +'")'
+        maya_cmd = 'from GoZ import maya_tools;maya_tools.load("' + \
+            file_path + '","' + obj_name + \
+            '","' + \
+            parent_name + \
+            '")'
 
         print maya_cmd
 
@@ -684,4 +686,4 @@ if __name__ == "__main__":
     import sys
     # send to maya/save from zbrush
     # arg 1: object name ie: pSphere1
-    MayaClient.send(sys.argv[1],sys.argv[2])
+    MayaClient.send(sys.argv[1], sys.argv[2])

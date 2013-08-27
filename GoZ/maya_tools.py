@@ -4,8 +4,8 @@ Maya Server and ZBrush client classes
 MayaServer is used to start a commandPort,
 and listen for objects from ZBrush
 
-Objects are loaded when ZBrushServer calls 
-client.load funcitons with name/path and tool parent 
+Objects are loaded when ZBrushServer calls
+client.load funcitons with name/path and tool parent
 
 If the ZDOCS env is missing MayaServer/ZBrushClient
 will start in a local mode
@@ -37,7 +37,8 @@ GARBAGE_NODES = ['blinn',
                  'materialInfo',
                  'ZBrushTexture',
                  'place2dTexture2']
-                      
+
+
 class MayaServer(object):
 
     """
@@ -62,7 +63,6 @@ class MayaServer(object):
 
         self.cmdport_name = "%s:%s" % (self.host, self.port)
         self.status = False
-
 
     def start(self):
         """ starts a command port"""
@@ -90,6 +90,7 @@ class MayaServer(object):
 
 # Maya-side callbacks
 
+
 def load(file_path, obj_name, parent_name):
     """
     get file name from file path
@@ -103,6 +104,7 @@ def load(file_path, obj_name, parent_name):
               removeDuplicateNetworks=True)
     cmds.addAttr(obj_name, longName='GoZParent', dataType='string')
     cmds.setAttr(obj_name + '.GoZParent', parent_name, type='string')
+
 
 def cleanup(name):
     """ removes un-used nodes on import of obj"""
@@ -138,7 +140,7 @@ class ZBrushClient(object):
 
     def __init__(self):
         """gets networking information, initalizes  client"""
-            
+
         self.host, self.port = utils.get_net_info('ZNET')
         self.status = False
         self.sock = None
@@ -213,7 +215,7 @@ class ZBrushClient(object):
     def send(self):
         """
         send a file load command to ZBrush via ZBrushServer
-        
+
         commands are send looking like:
         open|object#parentobject:nextobject#nextparent
 
@@ -224,15 +226,15 @@ class ZBrushClient(object):
         if self.status:
             self.export()
 
-            sendlist=[]
+            sendlist = []
 
             # organize lists so top level objects are first
             for obj in self.objs:
-                if obj.split('#')[0]==obj.split('#')[1]:
+                if obj.split('#')[0] == obj.split('#')[1]:
                     sendlist.append(obj)
- 
+
             for obj in self.objs:
-                if obj.split('#')[0]!=obj.split('#')[1]:
+                if obj.split('#')[0] != obj.split('#')[1]:
                     sendlist.append(obj)
 
             self.sock.send('open|' + ':'.join(sendlist))
@@ -243,8 +245,8 @@ class ZBrushClient(object):
                 'Please connect to ZBrushServer first')
 
     def load_confirm(self):
-        """ 
-        checks with ZBrushServer to make 
+        """
+        checks with ZBrushServer to make
         sure objects are loaded after a send
 
         'loaded' will be sent back from ZBrushServer
@@ -261,8 +263,8 @@ class ZBrushClient(object):
             raise errs.ZBrushServerError('ZBrushServer is down!')
 
     def export(self):
-        """ 
-        
+        """
+
         saves files, also checks for GoZParent attr
 
         GoZParent is used to import objects in correct order in ZBrush
@@ -271,12 +273,12 @@ class ZBrushClient(object):
         If no instance exists, it is created
 
         GoZParent is also appended to the export string: objectname#gozparentname
-         
+
         """
 
         print self.objs
 
-        #default pm3d star
+        # default pm3d star
 
         new_objects = []
 
@@ -291,9 +293,9 @@ class ZBrushClient(object):
                       options="v=0",
                       type="mayaAscii",
                       exportSelected=True)
-            if cmds.attributeQuery('GoZParent',node=obj,exists=True):
-                #object existed in zbrush, has 'parent' tool
-                parent = cmds.getAttr(obj+'.GoZParent')
+            if cmds.attributeQuery('GoZParent', node=obj, exists=True):
+                # object existed in zbrush, has 'parent' tool
+                parent = cmds.getAttr(obj + '.GoZParent')
             else:
                 # construct a list of objects to create
                 # append all future objects as sub tools
@@ -301,24 +303,24 @@ class ZBrushClient(object):
                 parent = new_objects[0]
                 cmds.addAttr(obj, longName='GoZParent', dataType='string')
                 cmds.setAttr(obj + '.GoZParent', parent, type='string')
-            self.objs[idx] = obj+'#'+parent
-            
+            self.objs[idx] = obj + '#' + parent
+
             # maya is often run as root, this makes sure osx can open/save files
             # not needed if maya is run un-privileged
-            os.chmod(self.ascii_path, 0777)
+            os.chmod(self.ascii_path, 0o777)
 
     def parse_objs(self):
-        """ 
+        """
         grab meshes from selection, filters out extraneous dag objects
         Also freezes transforms on objects
-        
+
         """
         self.objs = cmds.ls(selection=True, type='mesh', dag=True)
         if self.objs:
             xforms = cmds.listRelatives(
                 self.objs, parent=True, fullPath=True)
-            #freeze transform
-            cmds.makeIdentity(xforms,apply=True, t=1, r=1, s=1, n=0)
+            # freeze transform
+            cmds.makeIdentity(xforms, apply=True, t=1, r=1, s=1, n=0)
             cmds.select(xforms)
             self.objs = cmds.ls(selection=True)
             return True
@@ -326,16 +328,16 @@ class ZBrushClient(object):
             return False
 
     def get_gozid_mismatches(self):
-        """ 
+        """
         checks object history for instances of GoZBrushID,
         returns a list ofGoZBrushID/name conflicts
-         
+
         GoZBrushID is created by ZBrush on export and is used to track
         name changes that can occur in maya
-         
+
         this function compares object current name against the ID
         and returns a list of conflicts
-         
+
         this list is handled by the gui to allow for dialog boxes
 
         """
@@ -364,7 +366,7 @@ class ZBrushClient(object):
                         if obj != goz_id:
                             goz_list.append((obj, goz_id))
 
-        #resulting mismatches to be handled
+        # resulting mismatches to be handled
         return goz_list
 
     def relink(self):
@@ -381,7 +383,8 @@ class ZBrushClient(object):
 
         # in the case of a object being duplicated this removes the duplicate
         # to prevent deletion, the 'create' option is prefered
-        # is only happens when an object was duplicated and merged (original still exists)
+        # is only happens when an object was duplicated and merged (original
+        # still exists)
         if cmds.objExists(goz_id):
             cmds.delete(goz_id)
 
@@ -409,10 +412,10 @@ class ZBrushClient(object):
         cmds.select(pre_sel)
 
     def create(self):
-        """ 
+        """
         changes a GoZBrush ID to match object name
         ZBrush then treats this as a new object
-        
+
         """
         obj = self.goz_obj
         pre_sel = cmds.ls(sl=True)

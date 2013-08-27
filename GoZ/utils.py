@@ -2,7 +2,7 @@
 Utilities for managing validation and enviromental variables
 
 CONSTANTS:
-    
+
     MAYA_ENV        -- default maya network info env var
     ZBRUSH_ENV      -- default zbrush network info env var
 
@@ -24,9 +24,9 @@ import sys
 
 SHARED_DIR_ENV = 'ZDOCS'
 
-#currently only OSX is supported due to apple script usage
+# currently only OSX is supported due to apple script usage
 SHARED_DIR_DEFAULT_OSX = '/Users/Shared/Pixologic/GoZProjects'
-#win32 api could be used on windows
+# win32 api could be used on windows
 SHARED_DIR_DEFAULT_WIN = 'C:\\Users\\Public\\Pixologic\\GoZProjects'
 
 OS = sys.platform
@@ -134,15 +134,18 @@ def split_file_name(file_path):
 
     return file_name
 
+
 def make_file_name(name):
     """ makes a full resolved file path for zbrush """
     expanded_path = os.path.expandvars(make_fp_rel(name))
     return expanded_path
 
+
 def make_fp_rel(name):
     """ makes a relative file path to use in maya"""
     name = os.path.relpath(name + '.ma')
     return os.path.join('$' + SHARED_DIR_ENV, name)
+
 
 def send_osa(script_path):
     """ sends a zscript file for zbrush to open """
@@ -155,8 +158,9 @@ def send_osa(script_path):
     print cmd
     os.system(cmd)
 
+
 def open_osa():
-    """ 
+    """
     opens zbrush
 
     blocks untill ZBrush is ready for addional commands
@@ -165,23 +169,23 @@ def open_osa():
     launches ZBrush
     loop to check if ZBrush is 'ready'
     brings ZBrush to front/focus
-    clears any crash messages 
+    clears any crash messages
 
     """
 
     osa = "osascript "\
-    +"-e 'tell application \"ZBrush\" to launch' "\
-    +"-e 'tell application \"System Events\"' "\
-    +"-e 'repeat until visible of process \"ZBrushOSX\" is false' "\
-    +"-e 'set visible of process \"ZBrushOSX\" to false' "\
-    +"-e 'end repeat' "\
-    +"-e 'end tell' "\
-    +"-e 'tell application \"System Events\"' "\
-    +"-e 'tell application process \"ZBrushOSX\"' "\
-    +"-e 'set frontmost to true' "\
-    +"-e 'keystroke return' "\
-    +"-e 'end tell' "\
-    +"-e 'end tell'"
-    
+        + "-e 'tell application \"ZBrush\" to launch' "\
+        + "-e 'tell application \"System Events\"' "\
+        + "-e 'repeat until visible of process \"ZBrushOSX\" is false' "\
+        + "-e 'set visible of process \"ZBrushOSX\" to false' "\
+        + "-e 'end repeat' "\
+        + "-e 'end tell' "\
+        + "-e 'tell application \"System Events\"' "\
+        + "-e 'tell application process \"ZBrushOSX\"' "\
+        + "-e 'set frontmost to true' "\
+        + "-e 'keystroke return' "\
+        + "-e 'end tell' "\
+        + "-e 'end tell'"
+
     print osa
     os.system(osa)
