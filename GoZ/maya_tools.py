@@ -48,8 +48,6 @@ class MayaServer(object):
         utils.validate_host(self.host)
         utils.validate_port(self.port)
 
-        self.host = socket.getfqdn()
-
         self.cmdport_name = "%s:%s" % (self.host, self.port)
         self.status = cmds.commandPort(self.cmdport_name, query=True)
 
@@ -233,7 +231,18 @@ class ZBrushClient(object):
             raise errs.ZBrushServerError('ZBrushServer is down!')
 
     def export(self):
-        """ save some files """
+        """ 
+        
+        saves files, also checks for GoZParent attr
+
+        GoZParent is used to import objects in correct order in ZBrush
+        GoZParent determines the top level tool in ZBrush
+
+        If no instance exists, it is created
+
+        GoZParent is also appended to the export string: objectname#gozparentname
+         
+        """
 
         print self.objs
 
@@ -263,11 +272,17 @@ class ZBrushClient(object):
                 cmds.addAttr(obj, longName='GoZParent', dataType='string')
                 cmds.setAttr(obj + '.GoZParent', parent, type='string')
             self.objs[idx] = obj+'#'+parent
-
+            
+            # maya is often run as root, this makes sure osx can open/save files
+            # not needed if maya is run un-privileged
             os.chmod(self.ascii_path, 0777)
 
     def parse_objs(self):
-        """ grab meshes from selection, needs some revision """
+        """ 
+        grab meshes from selection, filters out extraneous dag objects
+        Also freezes transforms on objects
+        
+        """
         self.objs = cmds.ls(selection=True, type='mesh', dag=True)
         if self.objs:
             xforms = cmds.listRelatives(
@@ -363,7 +378,11 @@ class ZBrushClient(object):
         cmds.select(pre_sel)
 
     def create(self):
-        """ changes a GoZBrush ID to match object name """
+        """ 
+        changes a GoZBrush ID to match object name
+        ZBrush then treats this as a new object
+        
+        """
         obj = self.goz_obj
         pre_sel = cmds.ls(sl=True)
         cmds.delete(obj, ch=True)

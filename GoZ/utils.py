@@ -2,18 +2,30 @@
 Utilities for managing validation and enviromental variables
 
 constants:
+    
+    MAYA_ENV        -- default maya network info env var
+    ZBRUSH_ENV      -- default zbrush network info env var
+
     SHARED_DIR_ENV  -- ZDOCS default file path, /some/path/goz_default
     DEFAULT_NET     -- Contains fallbacks for host/port (local)
+    OS              -- platform check
+                       currently only osx is supported
+
+    SHARED_DIR_DEFAULT_OSX -- default OSX file plath for 'localmode'
+    SHARED_DIR_DEFAULT_WIN -- default WIN file path for 'localmode'
 
 methods:
     validate        -- validates host and port
     validate_host   -- validates a host
     validate_port   -- validates a port
+
     getenvs         -- returns enviromenal variables
     split_file_name -- returns a object name from full file path
     make_file_name  -- constructs a file path, with ENVs
+    
     err_handler     -- general error handler
                        takes a gui/logger function
+    
     get_net_info    -- takes a env varaible to look for
                        returns host/port
 """
@@ -23,24 +35,23 @@ import socket
 from GoZ import errs
 from contextlib import contextmanager
 import sys
-import ConfigParser
-import errno
-import time
 
 SHARED_DIR_ENV = 'ZDOCS'
 
-#currently only OSX is supported due to apple script
+#currently only OSX is supported due to apple script usage
 SHARED_DIR_DEFAULT_OSX = '/Users/Shared/Pixologic/GoZProjects'
+#win32 api could be used on windows
 SHARED_DIR_DEFAULT_WIN = 'C:\\Users\\Public\\Pixologic\\GoZProjects'
 
 OS = sys.platform
 
+# maya network info env
 MAYA_ENV = 'MNET'
+# zbrush network info env
 ZBRUSH_ENV = 'ZNET'
 
-# local mode is replace with and empty string, starts a port on external IP
-
-DEFAULT_NET = {MAYA_ENV: 'localmode:6667', ZBRUSH_ENV: 'localmode:6668'}
+# default network info
+DEFAULT_NET = {MAYA_ENV: 'localhost:6667', ZBRUSH_ENV: 'localhost:6668'}
 
 
 @contextmanager
@@ -72,17 +83,12 @@ def validate_port(port):
 
 
 def validate_host(host):
-    """ pings host, also trys to resolve hostname if a computer name is used """
+    """ validates IP/host, or raises and error """
 
     try:
         host = socket.gethostbyname(host)
     except socket.error:
         raise errs.IpError(host, 'Please specify a valid host: %s' % (host))
-
-def server_host():
-
-    host = socket.gethostname()
-    return host
 
 
 def validate(net_string):
@@ -93,10 +99,6 @@ def validate(net_string):
     print net_string
 
     host, port = net_string.split(':')
-
-    if host == 'localmode':
-        return ('',port)
-
     validate_host(host)
     validate_port(port)
     return (host, port)
@@ -104,19 +106,17 @@ def validate(net_string):
 
 def get_net_info(net_env):
     """
-    check for enviromental variabels, places them in defaults.cfg
-    default back to config file
-    finally default network info (local)
+    check for enviromental variabels,
+    or defaults network info (local)
     net_env is MNET or ZNET
 
-    check should be added to verify if a host/port can be served on
-
+    missing SHARED_DIR_ENV forces local mode
     """
 
     # check the shared dir first. it could force us into local mode
     shared_dir = os.getenv(SHARED_DIR_ENV)
     if shared_dir is None:
-        # if no shared directory is set, we MUST operate in local mode
+        # if no shared directory is set, start in local modee
         print "No shared directory set. Defaulting to local mode"
         if OS == 'darwin':
             print "working on OSX"
@@ -151,6 +151,7 @@ def make_file_name(name):
     return expanded_path
 
 def make_fp_rel(name):
+    """ makes a relative file path to use in maya"""
     name = os.path.relpath(name + '.ma')
     return os.path.join('$' + SHARED_DIR_ENV, name)
 

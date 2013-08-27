@@ -208,10 +208,15 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
                         
                         //check for matching tool
                         //looks in the interface/UI
-                        [VarSet, uiResult, [IExists,Tool:#PARENT]]
+                        [VarSet, uiResult, [IExists,Tool:SubTool:#PARENT]]
                        
                         [If, #uiResult == 1,
-                            [IPress, Tool:#PARENT]
+                            //check to see if tool is a parent tool
+                            [If, [IExists,Tool:#PARENT],
+                            [IPress, Tool:#PARENT],
+                            ]
+
+                            [RoutineCall, findSubTool]
                             [VarSet, makeTool,0]
                             [LoopExit] 
                         ,
@@ -228,8 +233,6 @@ class ZBrushHandler(SocketServer.BaseRequestHandler):
                     ,
                     //otherwise 
                     //find sub tool
-
-                    [RoutineCall, findSubTool]
                     
                     ]
                     ]

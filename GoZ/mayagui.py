@@ -113,7 +113,7 @@ class Win(object):
         # construct list of selection, filter meshes
         if self.client.parse_objs():
             # check for any GoZBrushIDs, and relink/create
-            for obj, goz_id in self.client.goz_check():
+            for obj, goz_id in self.client.get_gozid_mismatches():
                 # relinked objs are removed from self.client.objs
                 # this prevents relinking 2 previous tool histories
                 # it stops relinking after the 1st match/relink
